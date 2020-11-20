@@ -5,4 +5,8 @@ with open('../data/mempool.json') as f:
 
 print(len(mempool))
 
+toBeClustered = {txid: vals for txid, vals in mempool.items() if vals["ancestorcount"] + vals["descendantcount"] > 2}
+
+print(len(toBeClustered))
+
 f.close()
