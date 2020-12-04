@@ -15,12 +15,19 @@ def getLocalClusterTxids(txid, transaction):
     return txids
 
 def clusterTransaction(txid, transaction):
-    repTxid = getRepresentativeTxid(getLocalClusterTxids(txid, transaction))
-    #check if repTxid belongs to another cluster
-    while (repTxid != txClusterMap[repTxid]):
-        repTxid = txClusterMap[repTxid]
+    localClusterTxids = getLocalClusterTxids(txid, transaction)
+    #check for each tx in local cluster if it belongs to another cluster
+    for lct in localClusterTxids:
+        lctRep = txClusterMap[lct]
+        localClusterTxids = localClusterTxids + [lctRep]
+        #check recursively if ltcRep belongs to another cluster
+        while (lctRep != txClusterMap[lctRep]):
+            lctRep = txClusterMap[lctRep]
+            localClusterTxids = localClusterTxids + [lctRep]
+    repTxid = getRepresentativeTxid(localClusterTxids)
+
     txClusterMap[txid] = repTxid
-    if "repTxid" in clusters:
+    if repTxid in clusters:
         clusters[repTxid].add(txid)
     else:
         clusters[repTxid] = {repTxid, txid}
