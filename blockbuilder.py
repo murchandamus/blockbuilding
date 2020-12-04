@@ -11,7 +11,7 @@ def getRepresentativeTxid(txids):
     return txids[0]
 
 def getLocalClusterTxids(txid, transaction):
-    txids = [txid] + transaction["depends"] + transaction["spentby"] 
+    txids = [txid] + transaction["depends"] + transaction["spentby"]
     return txids
 
 def clusterTransaction(txid, transaction):
@@ -20,7 +20,10 @@ def clusterTransaction(txid, transaction):
     while (repTxid != txClusterMap[repTxid]):
         repTxid = txClusterMap[repTxid]
     txClusterMap[txid] = repTxid
-    clusters[repTxid].add(txid)
+    if "repTxid" in clusters:
+        clusters[repTxid].add(txid)
+    else:
+        clusters[repTxid] = {repTxid, txid}
 
 with open('data/mempool.json') as f:
     mempool = json.load(f)
@@ -32,14 +35,18 @@ toBeClustered = {txid: vals for txid, vals in mempool.items() if vals["ancestorc
 anyUpdated = True
 
 while (anyUpdated):
+    clusters = {}
     anyUpdated = False
     for txid, vals in mempool.items():
+        #print "txid, vals: ", txid, vals
         repBefore = txClusterMap[txid]
-        print "repBefore: ", repBefore
+        #print "repBefore: ", repBefore
         clusterTransaction(txid, vals)
         repAfter = txClusterMap[txid]
-        print "repAfter: ", repAfter
-        anyUpdated = anyUpdate or repAfter != repBefore
-        print "anyUpdated: ", anyUpdated
+        #print "repAfter: ", repAfter
+        anyUpdated = anyUpdated or repAfter != repBefore
+        #print "anyUpdated: ", anyUpdated
+
+print clusters
 
 f.close()
