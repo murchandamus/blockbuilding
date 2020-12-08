@@ -29,7 +29,7 @@ def clusterTransaction(txid, transaction):
     if repTxid in clusters:
         clusters[repTxid] = list(set(clusters[repTxid] + [txid]))
     else:
-        clusters[repTxid] = [repTxid, txid]
+        clusters[repTxid] = list(set([repTxid, txid]))
 with open('data/mempool.json') as f:
     mempool = json.load(f)
 
