@@ -1,7 +1,7 @@
 import json
 
-clusters = {} #Clusters are represented by the lowest txid and map to a list of txids.
-txClusterMap = {} #Maps transactions to cluster representatives.
+clusters = {} # Clusters are represented by the lowest txid and map to a list of txids.
+txClusterMap = {} # Maps transactions to cluster representatives.
 
 def getRepresentativeTxid(txids):
     txids.sort()
@@ -14,11 +14,11 @@ def getLocalClusterTxids(txid, transaction):
 def clusterTransaction(txid, transaction):
     localClusterTxids = getLocalClusterTxids(txid, transaction)
 
-    #check for each tx in local cluster if it belongs to another cluster
+    # Check for each tx in local cluster if it belongs to another cluster
     for lct in localClusterTxids:
         lctRep = txClusterMap[lct]
         localClusterTxids = localClusterTxids + [lctRep]
-        #check recursively if ltcRep belongs to another cluster
+        # Check recursively if ltcRep belongs to another cluster
         while (lctRep != txClusterMap[lctRep]):
             lctRep = txClusterMap[lctRep]
             localClusterTxids = localClusterTxids + [lctRep]
@@ -33,14 +33,13 @@ def clusterTransaction(txid, transaction):
 with open('data/mempool.json') as f:
     mempool = json.load(f)
 
-# initialize txClusterMap with identity
+# Initialize txClusterMap with identity
 for txid in mempool.keys():
     txClusterMap[txid] = txid
 
-toBeClustered = {txid: vals for txid, vals in mempool.items() if vals["ancestorcount"] + vals["descendantcount"] > 2}
 anyUpdated = True
 
-# recursively group clusters until nothing changes
+# Recursively group clusters until nothing changes
 while (anyUpdated):
     clusters = {}
     anyUpdated = False
