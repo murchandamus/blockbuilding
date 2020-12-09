@@ -1,15 +1,18 @@
 import json
 
-clusters = {} # Clusters are represented by the lowest txid and map to a list of txids.
-txClusterMap = {} # Maps transactions to cluster representatives.
+clusters = {}  # Maps lowest txid to list of txids
+txClusterMap = {}  # Maps txid to its representative's txid
+
 
 def getRepresentativeTxid(txids):
     txids.sort()
     return txids[0]
 
+
 def getLocalClusterTxids(txid, transaction):
     txids = [txid] + transaction["depends"] + transaction["spentby"]
     return txids
+
 
 def clusterTransaction(txid, transaction):
     localClusterTxids = getLocalClusterTxids(txid, transaction)
@@ -29,7 +32,9 @@ def clusterTransaction(txid, transaction):
     if repTxid in clusters:
         clusters[repTxid] = list(set(clusters[repTxid] + [txid]))
     else:
-        clusters[repTxid] = list(set([repTxid, txid]))
+        clusters[repTxid] = list(set(repTxid, txid))
+
+
 with open('data/mempool.json') as f:
     mempool = json.load(f)
 
