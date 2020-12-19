@@ -26,6 +26,13 @@ class TestBlockbuilder(unittest.TestCase):
                 "Should be ['abc', '123']"
             )
 
+    def clusterTx(self):
+        self.assertEqual(
+                blockbuilder.clusterTx("abc", testDict["abc"], {}, {}),
+                ["abc", "123"],
+                "Should be ['abc', '123']"
+            )
+
 
 if __name__ == '__main__':
     unittest.main()
