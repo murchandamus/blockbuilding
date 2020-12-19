@@ -62,5 +62,6 @@ def parseMempoolFile(mempoolFile):
     f.close()
 
 
-mempoolFileString = "/home/murch/Workspace/blockbuilding/data/mempool.json"
-parseMempoolFile(mempoolFileString)
+if __name__ == '__main__':
+    mempoolFileString = "/home/murch/Workspace/blockbuilding/data/mempool.json"
+    parseMempoolFile(mempoolFileString)
