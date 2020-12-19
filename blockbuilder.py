@@ -1,8 +1,5 @@
 import json
 
-clusters = {}  # Maps lowest txid to list of txids
-txClusterMap = {}  # Maps txid to its representative's txid
-
 
 def getRepresentativeTxid(txids):
     txids.sort()
@@ -14,7 +11,7 @@ def getLocalClusterTxids(txid, transaction):
     return txids
 
 
-def clusterTransaction(txid, transaction):
+def clusterTransaction(txid, transaction, clusters, txClusterMap):
     localClusterTxids = getLocalClusterTxids(txid, transaction)
 
     # Check for each tx in local cluster if it belongs to another cluster
@@ -32,28 +29,38 @@ def clusterTransaction(txid, transaction):
     if repTxid in clusters:
         clusters[repTxid] = list(set(clusters[repTxid] + [txid]))
     else:
-        clusters[repTxid] = list(set(repTxid, txid))
+        clusters[repTxid] = list({repTxid, txid})
 
 
-with open('data/mempool.json') as f:
-    mempool = json.load(f)
+def parseMempoolFile(mempoolFile):
+    mempool = []
+    clusters = {}  # Maps lowest txid to list of txids
+    txClusterMap = {}  # Maps txid to its representative's txid
 
-# Initialize txClusterMap with identity
-for txid in mempool.keys():
-    txClusterMap[txid] = txid
+    with open(mempoolFile) as f:
+        mempool = json.load(f)
+        print(mempool)
 
-anyUpdated = True
+    # Initialize txClusterMap with identity
+    for txid in mempool.keys():
+        txClusterMap[txid] = txid
 
-# Recursively group clusters until nothing changes
-while (anyUpdated):
-    clusters = {}
-    anyUpdated = False
-    for txid, vals in mempool.items():
-        repBefore = txClusterMap[txid]
-        clusterTransaction(txid, vals)
-        repAfter = txClusterMap[txid]
-        anyUpdated = anyUpdated or repAfter != repBefore
+    anyUpdated = True
 
-print(json.dumps(clusters, 2))
+    # Recursively group clusters until nothing changes
+    while (anyUpdated):
+        clusters = {}
+        anyUpdated = False
+        for txid, vals in mempool.items():
+            repBefore = txClusterMap[txid]
+            clusterTransaction(txid, vals, clusters, txClusterMap)
+            repAfter = txClusterMap[txid]
+            anyUpdated = anyUpdated or repAfter != repBefore
 
-f.close()
+    print(json.dumps(clusters, 2))
+
+    f.close()
+
+
+mempoolFileString = "/home/murch/Workspace/blockbuilding/data/mempool.json"
+parseMempoolFile(mempoolFileString)
