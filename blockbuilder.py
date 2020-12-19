@@ -11,7 +11,7 @@ def getLocalClusterTxids(txid, transaction):
     return txids
 
 
-def clusterTransaction(txid, transaction, clusters, txClusterMap):
+def clusterTx(txid, transaction, clusters, txClusterMap):
     localClusterTxids = getLocalClusterTxids(txid, transaction)
 
     # Check for each tx in local cluster if it belongs to another cluster
@@ -30,6 +30,7 @@ def clusterTransaction(txid, transaction, clusters, txClusterMap):
         clusters[repTxid] = list(set(clusters[repTxid] + [txid]))
     else:
         clusters[repTxid] = list({repTxid, txid})
+    return clusters[repTxid]
 
 
 def parseMempoolFile(mempoolFile):
@@ -39,7 +40,6 @@ def parseMempoolFile(mempoolFile):
 
     with open(mempoolFile) as f:
         mempool = json.load(f)
-        print(mempool)
 
     # Initialize txClusterMap with identity
     for txid in mempool.keys():
@@ -53,7 +53,7 @@ def parseMempoolFile(mempoolFile):
         anyUpdated = False
         for txid, vals in mempool.items():
             repBefore = txClusterMap[txid]
-            clusterTransaction(txid, vals, clusters, txClusterMap)
+            clusterTx(txid, vals, clusters, txClusterMap)
             repAfter = txClusterMap[txid]
             anyUpdated = anyUpdated or repAfter != repBefore
 
