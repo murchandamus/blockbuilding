@@ -16,6 +16,8 @@ def clusterTx(txid, transaction, clusters, txClusterMap):
 
     # Check for each tx in local cluster if it belongs to another cluster
     for lct in localClusterTxids:
+        if lct not in txClusterMap.keys():
+            txClusterMap[lct] = lct
         lctRep = txClusterMap[lct]
         localClusterTxids = localClusterTxids + [lctRep]
         # Check recursively if ltcRep belongs to another cluster
@@ -30,11 +32,11 @@ def clusterTx(txid, transaction, clusters, txClusterMap):
         clusters[repTxid] = list(set(clusters[repTxid] + [txid]))
     else:
         clusters[repTxid] = list({repTxid, txid})
-    return clusters[repTxid]
+    return clusters
 
 
 def parseMempoolFile(mempoolFile):
-    mempool = []
+    mempool = {}
     clusters = {}  # Maps lowest txid to list of txids
     txClusterMap = {}  # Maps txid to its representative's txid
 
@@ -53,15 +55,16 @@ def parseMempoolFile(mempoolFile):
         anyUpdated = False
         for txid, vals in mempool.items():
             repBefore = txClusterMap[txid]
-            clusterTx(txid, vals, clusters, txClusterMap)
+            clusters = clusterTx(txid, vals, clusters, txClusterMap)
             repAfter = txClusterMap[txid]
             anyUpdated = anyUpdated or repAfter != repBefore
 
-    print(json.dumps(clusters, 2))
-
     f.close()
+    return clusters
 
 
 if __name__ == '__main__':
-    mempoolFileString = "/home/murch/Workspace/blockbuilding/data/mempool.json"
-    parseMempoolFile(mempoolFileString)
+    # mempoolFileString = "/home/murch/Workspace/blockbuilding/data/mempool.json"
+    mempoolFileString = "/home/murch/Workspace/blockbuilding/data/mini-mempool.json"
+    clusters = parseMempoolFile(mempoolFileString)
+    print(json.dumps(clusters, 2))
