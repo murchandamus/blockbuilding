@@ -1,6 +1,15 @@
 import json
 
 
+class transaction():
+    def __init__(self, txid, fee, weight, parents=[]):
+        self.txid = txid
+        self.fee = int(fee)
+        self.weight = int(weight)
+        self.descendants = []
+        self.parents = parents
+
+
 def getRepresentativeTxid(txids):
     txids.sort()
     return txids[0]
@@ -34,14 +43,18 @@ def clusterTx(txid, transaction, clusters, txClusterMap):
         clusters[repTxid] = list({repTxid, txid})
     return clusters
 
-
-def parseMempoolFile(mempoolFile):
+def loadMempoolFile(mempoolFile):
     mempool = {}
-    clusters = {}  # Maps lowest txid to list of txids
-    txClusterMap = {}  # Maps txid to its representative's txid
-
     with open(mempoolFile) as f:
         mempool = json.load(f)
+    f.close()
+    return mempool
+
+
+def parseMempoolFile(mempoolFile):
+    mempool = loadMempoolFile(mempoolFile)
+    clusters = {}  # Maps lowest txid to list of txids
+    txClusterMap = {}  # Maps txid to its representative's txid
 
     # Initialize txClusterMap with identity
     for txid in mempool.keys():
@@ -59,7 +72,6 @@ def parseMempoolFile(mempoolFile):
             repAfter = txClusterMap[txid]
             anyUpdated = anyUpdated or repAfter != repBefore
 
-    f.close()
     return clusters
 
 

@@ -1,6 +1,5 @@
 import unittest
 import blockbuilder
-import json
 
 testDict = {
     "123": {"somekey": "value", "depends":  [], "spentby": ["abc"]},
