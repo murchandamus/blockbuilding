@@ -2,7 +2,7 @@ import json
 
 
 class transaction():
-    def __init__(self, txid, fee, weight, parents=[]):
+    def __init__(self, txid, fee, weight, parents=[], descendants=[]):
         self.txid = txid
         self.fee = int(fee)
         self.weight = int(weight)
@@ -54,10 +54,17 @@ def loadMempoolFile(mempoolFile):
 def parseMempoolFile(mempoolFile):
     mempool = loadMempoolFile(mempoolFile)
     clusters = {}  # Maps lowest txid to list of txids
+    txids = {}
     txClusterMap = {}  # Maps txid to its representative's txid
 
     # Initialize txClusterMap with identity
     for txid in mempool.keys():
+        txids[txid] = transaction(txid,
+                        mempool[txid]["fees"]["base"],
+                        mempool[txid]["weight"],
+                        mempool[txid]["depends"],
+                        mempool[txid]["spentby"]
+                    )
         txClusterMap[txid] = txid
 
     anyUpdated = True
