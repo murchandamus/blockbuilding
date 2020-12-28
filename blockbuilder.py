@@ -10,6 +10,54 @@ class transaction():
         self.parents = parents
 
 
+class cluster():
+    def __init__(self, tx):
+        self.representative = tx.txid
+        self.txs = {tx.txid: tx}
+
+    def addTx(self, tx):
+        self.txs[tx.txid] = tx
+        self.representative = min(tx.txid, self.representative)
+
+    def getBestCandidateSet(self):
+        print("not implemented")
+        # generate powerset
+        # filter for validity
+        # sort by effective feerate
+        # return best
+
+
+class mempool():
+    def __init__(self):
+        self.txs = {}
+
+    def fromJSON(self, filePath):
+        txsJSON = {}
+        with open(filePath) as f:
+            txsJSON = json.load(f)
+
+            # Initialize txClusterMap with identity
+            for txid in txsJSON.keys():
+                self.txs[txid] = transaction(
+                    txid,
+                    txsJSON[txid]["fees"]["base"],
+                    txsJSON[txid]["weight"],
+                    txsJSON[txid]["depends"],
+                    txsJSON[txid]["spentby"]
+                )
+        f.close()
+
+    def fromTXT(self, filePath):
+        print("not implemented")
+        # Clara fills this in
+
+    def getTx(self, txid):
+        return self.txs[txid]
+
+    def getTxs(self):
+        return self.txs
+
+
 def getRepresentativeTxid(txids):
     txids.sort()
     return txids[0]
@@ -43,6 +91,7 @@ def clusterTx(txid, transaction, clusters, txClusterMap):
         clusters[repTxid] = list({repTxid, txid})
     return clusters
 
+
 def loadMempoolFile(mempoolFile):
     mempool = {}
     with open(mempoolFile) as f:
@@ -59,12 +108,13 @@ def parseMempoolFile(mempoolFile):
 
     # Initialize txClusterMap with identity
     for txid in mempool.keys():
-        txids[txid] = transaction(txid,
-                        mempool[txid]["fees"]["base"],
-                        mempool[txid]["weight"],
-                        mempool[txid]["depends"],
-                        mempool[txid]["spentby"]
-                    )
+        txids[txid] = transaction(
+            txid,
+            mempool[txid]["fees"]["base"],
+            mempool[txid]["weight"],
+            mempool[txid]["depends"],
+            mempool[txid]["spentby"]
+        )
         txClusterMap[txid] = txid
 
     anyUpdated = True

@@ -12,7 +12,22 @@ testDict = {
 
 
 class TestBlockbuilder(unittest.TestCase):
-    print("TestBlockbuilder")
+    print("Test from JSON")
+
+    def test_parse_mempool_class(self):
+        mempool = blockbuilder.mempool()
+        print("Start parseMempoolFile")
+        mempool.fromJSON("data/mini-mempool.json")
+        txids = [
+            "a5823eb3ec64c381ce29b98aa71a5998094054171c5b9a9e0f0084289ad2ccf6",
+            "9a9b73b2a6ea86a495662d5e90cda9fadbf70c470231dff6b4f9286707f30812",
+            "154ff366005101ed97c044782d82e3abf44073968bd0db21c9f5b27296aa3de2",
+            "6a2ba899956359eb278f6daffc8ae0f5dfb631a67dbfe57687f665b20bcf063e"
+        ]
+
+        keys = mempool.getTxs().keys()
+        for txid in txids:
+            self.assertEqual(True, txid in keys)
 
     def test_get_representative_tx(self):
         print("repTx")
