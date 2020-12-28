@@ -2,12 +2,12 @@ import unittest
 import blockbuilder
 
 testDict = {
-    "123": {"somekey": "value", "depends":  [], "spentby": ["abc"]},
-    "abc": {"somekey": "otherValue", "depends":  ["123"], "spentby": []},
-    "nop": {"somekey": "v4", "depends":  [], "spentby": ["qrs"]},
-    "qrs": {"somekey": "baum", "depends":  ["nop"], "spentby": ["tuv"]},
-    "tuv": {"somekey": "irgendwas", "depends":  ["qrs"], "spentby": []},
-    "xyz": {"somekey": "v3", "depends":  [], "spentby": []},
+    "123": blockbuilder.transaction("123", 100, 100, [], ["abc"]),
+    "abc": blockbuilder.transaction("abc", 100, 100, ["123"], []),
+    "nop": blockbuilder.transaction("nop", 100, 100, [], ["qrs"]),
+    "qrs": blockbuilder.transaction("qrs", 1, 1, ["nop"], ["tuv"]),
+    "tuv": blockbuilder.transaction("tuv", 1, 1, ["qrs"], []),
+    "xyz": blockbuilder.transaction("xyz", 1, 1, [], [])
 }
 
 
@@ -20,6 +20,7 @@ class TestBlockbuilder(unittest.TestCase):
         mempool.fromJSON("data/mini-mempool.json")
         txids = [
             "a5823eb3ec64c381ce29b98aa71a5998094054171c5b9a9e0f0084289ad2ccf6",
+            "b5823eb3ec64c381ce29b98aa71a5998094054171c5b9a9e0f0084289ad2ccf6",
             "9a9b73b2a6ea86a495662d5e90cda9fadbf70c470231dff6b4f9286707f30812",
             "154ff366005101ed97c044782d82e3abf44073968bd0db21c9f5b27296aa3de2",
             "6a2ba899956359eb278f6daffc8ae0f5dfb631a67dbfe57687f665b20bcf063e"
@@ -28,6 +29,9 @@ class TestBlockbuilder(unittest.TestCase):
         keys = mempool.getTxs().keys()
         for txid in txids:
             self.assertEqual(True, txid in keys)
+
+    def test_cluster(self):
+        print("not tested yet")
 
     def test_get_representative_tx(self):
         print("repTx")
@@ -51,22 +55,6 @@ class TestBlockbuilder(unittest.TestCase):
                 blockbuilder.clusterTx("abc", testDict["abc"], {}, {}),
                 {"123": ["123", "abc"]}
             )
-
-    def test_parse_mempool_file(self):
-        print("Start parseMempoolFile")
-        clusters = blockbuilder.parseMempoolFile("data/mini-mempool.json")
-        self.assertDictEqual(
-            clusters,
-            {
-                "154ff366005101ed97c044782d82e3abf44073968bd0db21c9f5b27296aa3de2":
-                [
-                    "a5823eb3ec64c381ce29b98aa71a5998094054171c5b9a9e0f0084289ad2ccf6",
-                    "9a9b73b2a6ea86a495662d5e90cda9fadbf70c470231dff6b4f9286707f30812",
-                    "154ff366005101ed97c044782d82e3abf44073968bd0db21c9f5b27296aa3de2",
-                    "6a2ba899956359eb278f6daffc8ae0f5dfb631a67dbfe57687f665b20bcf063e"
-                ]
-            }
-        )
 
 
 if __name__ == '__main__':

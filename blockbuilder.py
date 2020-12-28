@@ -64,7 +64,8 @@ def getRepresentativeTxid(txids):
 
 
 def getLocalClusterTxids(txid, transaction):
-    txids = [txid] + transaction["depends"] + transaction["spentby"]
+    txids = [txid] + transaction.descendants + transaction.parents
+    print("txids of getLocalClusterTxids for " + str(txid) + ": " + str(txids))
     return txids
 
 
@@ -92,29 +93,12 @@ def clusterTx(txid, transaction, clusters, txClusterMap):
     return clusters
 
 
-def loadMempoolFile(mempoolFile):
-    mempool = {}
-    with open(mempoolFile) as f:
-        mempool = json.load(f)
-    f.close()
-    return mempool
-
-
-def parseMempoolFile(mempoolFile):
-    mempool = loadMempoolFile(mempoolFile)
+def clusterMempool(mempool):
     clusters = {}  # Maps lowest txid to list of txids
-    txids = {}
     txClusterMap = {}  # Maps txid to its representative's txid
 
     # Initialize txClusterMap with identity
-    for txid in mempool.keys():
-        txids[txid] = transaction(
-            txid,
-            mempool[txid]["fees"]["base"],
-            mempool[txid]["weight"],
-            mempool[txid]["depends"],
-            mempool[txid]["spentby"]
-        )
+    for txid in mempool.getTxs().keys():
         txClusterMap[txid] = txid
 
     anyUpdated = True
@@ -123,7 +107,7 @@ def parseMempoolFile(mempoolFile):
     while (anyUpdated):
         clusters = {}
         anyUpdated = False
-        for txid, vals in mempool.items():
+        for txid, vals in mempool.getTxs().items():
             repBefore = txClusterMap[txid]
             clusters = clusterTx(txid, vals, clusters, txClusterMap)
             repAfter = txClusterMap[txid]
@@ -135,5 +119,7 @@ def parseMempoolFile(mempoolFile):
 if __name__ == '__main__':
     # mempoolFileString = "/home/murch/Workspace/blockbuilding/data/mempool.json"
     mempoolFileString = "/home/murch/Workspace/blockbuilding/data/mini-mempool.json"
-    clusters = parseMempoolFile(mempoolFileString)
+    mempool = mempool()
+    mempool.fromJSON(mempoolFileString)
+    clusters = clusterMempool(mempool)
     print(json.dumps(clusters, 2))
