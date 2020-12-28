@@ -2,12 +2,12 @@ import unittest
 import blockbuilder
 
 testDict = {
-    "123": blockbuilder.transaction("123", 100, 100, [], ["abc"]),
-    "abc": blockbuilder.transaction("abc", 100, 100, ["123"], []),
-    "nop": blockbuilder.transaction("nop", 100, 100, [], ["qrs"]),
-    "qrs": blockbuilder.transaction("qrs", 1, 1, ["nop"], ["tuv"]),
-    "tuv": blockbuilder.transaction("tuv", 1, 1, ["qrs"], []),
-    "xyz": blockbuilder.transaction("xyz", 1, 1, [], [])
+    "123": blockbuilder.Transaction("123", 100, 100, [], ["abc"]),
+    "abc": blockbuilder.Transaction("abc", 100, 100, ["123"], []),
+    "nop": blockbuilder.Transaction("nop", 100, 100, [], ["qrs"]),
+    "qrs": blockbuilder.Transaction("qrs", 1, 1, ["nop"], ["tuv"]),
+    "tuv": blockbuilder.Transaction("tuv", 1, 1, ["qrs"], []),
+    "xyz": blockbuilder.Transaction("xyz", 1, 1, [], [])
 }
 
 
@@ -15,7 +15,7 @@ class TestBlockbuilder(unittest.TestCase):
     print("Test from JSON")
 
     def test_parse_mempool_class(self):
-        mempool = blockbuilder.mempool()
+        mempool = blockbuilder.Mempool()
         print("Start parseMempoolFile")
         mempool.fromJSON("data/mini-mempool.json")
         txids = [

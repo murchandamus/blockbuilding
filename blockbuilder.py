@@ -1,7 +1,7 @@
 import json
 
 
-class transaction():
+class Transaction():
     def __init__(self, txid, fee, weight, parents=[], descendants=[]):
         self.txid = txid
         self.fee = int(fee)
@@ -10,7 +10,7 @@ class transaction():
         self.parents = parents
 
 
-class cluster():
+class Cluster():
     def __init__(self, tx):
         self.representative = tx.txid
         self.txs = {tx.txid: tx}
@@ -27,7 +27,7 @@ class cluster():
         # return best
 
 
-class mempool():
+class Mempool():
     def __init__(self):
         self.txs = {}
 
@@ -38,7 +38,7 @@ class mempool():
 
             # Initialize txClusterMap with identity
             for txid in txsJSON.keys():
-                self.txs[txid] = transaction(
+                self.txs[txid] = Transaction(
                     txid,
                     txsJSON[txid]["fees"]["base"],
                     txsJSON[txid]["weight"],
@@ -119,7 +119,7 @@ def clusterMempool(mempool):
 if __name__ == '__main__':
     # mempoolFileString = "/home/murch/Workspace/blockbuilding/data/mempool.json"
     mempoolFileString = "/home/murch/Workspace/blockbuilding/data/mini-mempool.json"
-    mempool = mempool()
+    mempool = Mempool()
     mempool.fromJSON(mempoolFileString)
     clusters = clusterMempool(mempool)
     print(json.dumps(clusters, 2))
