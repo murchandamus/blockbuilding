@@ -52,7 +52,7 @@ class TestBlockbuilder(unittest.TestCase):
     def test_cluster_tx(self):
         print("Start clusterTx")
         self.assertDictEqual(
-                blockbuilder.clusterTx("abc", testDict["abc"], {}, {}),
+                blockbuilder.clusterTx(testDict["abc"], {}, {}),
                 {"123": ["123", "abc"]}
             )
 

@@ -69,8 +69,8 @@ def getLocalClusterTxids(txid, transaction):
     return txids
 
 
-def clusterTx(txid, transaction, clusters, txClusterMap):
-    localClusterTxids = getLocalClusterTxids(txid, transaction)
+def clusterTx(transaction, clusters, txClusterMap):
+    localClusterTxids = getLocalClusterTxids(transaction.txid, transaction)
 
     # Check for each tx in local cluster if it belongs to another cluster
     for lct in localClusterTxids:
@@ -85,11 +85,11 @@ def clusterTx(txid, transaction, clusters, txClusterMap):
 
     repTxid = getRepresentativeTxid(localClusterTxids)
 
-    txClusterMap[txid] = repTxid
+    txClusterMap[transaction.txid] = repTxid
     if repTxid in clusters:
-        clusters[repTxid] = list(set(clusters[repTxid] + [txid]))
+        clusters[repTxid] = list(set(clusters[repTxid] + [transaction.txid]))
     else:
-        clusters[repTxid] = list({repTxid, txid})
+        clusters[repTxid] = list({repTxid, transaction.txid})
     return clusters
 
 
@@ -109,7 +109,7 @@ def clusterMempool(mempool):
         anyUpdated = False
         for txid, vals in mempool.getTxs().items():
             repBefore = txClusterMap[txid]
-            clusters = clusterTx(txid, vals, clusters, txClusterMap)
+            clusters = clusterTx(vals, clusters, txClusterMap)
             repAfter = txClusterMap[txid]
             anyUpdated = anyUpdated or repAfter != repBefore
 
