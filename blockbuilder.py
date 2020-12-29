@@ -51,17 +51,14 @@ class Mempool():
         f.close()
 
     def fromTXT(self, filePath, SplitBy=" "):
-        txs = {}
         with open(filePath, 'r') as imp_file:
             for line in imp_file:
                 if 'txid' in line:
                     continue
                 line = line.rstrip('\n')
-                split_line = [s for s in line.split(SplitBy)]
-                self.txs[split_line[0]] = Transaction(split_line[0], int(split_line[1]), int(split_line[2]), split_line[3:])
+                elements = line.split(SplitBy)
+                self.txs[elements[0]] = Transaction(elements[0], int(elements[1]), int(elements[2]), elements[3:])
         imp_file.close()
-        # print("not implemented")
-        # Clara fills this in
 
     def getTx(self, txid):
         return self.txs[txid]
@@ -124,13 +121,13 @@ def clusterMempool(mempool):
 
 
 if __name__ == '__main__':
-    #mempoolFileString = "data/mempool.json"
-    #mempoolFileString = "/home/murch/Workspace/blockbuilding/data/mini-mempool.json"
+    # mempoolFileString = "data/mempool.json"
+    # mempoolFileString = "/home/murch/Workspace/blockbuilding/data/mini-mempool.json"
     mempoolFileString = "data/mempoolTXT"
     mempool = Mempool()
     mempool.fromTXT(mempoolFileString, " ")
-    #mempool.fromJSON(mempoolFileString)
+    # mempool.fromJSON(mempoolFileString)
     clusters = clusterMempool(mempool)
-    #print(json.dumps(clusters, 2))
+    # print(json.dumps(clusters, 2))
     print(clusters)
-   # print(json.dumps(clusters))
+    # print(json.dumps(clusters))

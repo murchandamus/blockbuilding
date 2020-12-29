@@ -25,8 +25,7 @@ class TestBlockbuilder(unittest.TestCase):
         keys = mempool.getTxs().keys()
         for txid in txids:
             self.assertEqual(True, txid in keys)
-            #self.assertEqual(True, len(txids) == len(keys))
-
+            # self.assertEqual(True, len(txids) == len(keys))
 
         def test_parse_mempool_class(self):
             mempool = blockbuilder.Mempool()
