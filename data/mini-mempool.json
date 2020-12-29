@@ -1,0 +1,196 @@
+{
+  "01123eb3ec64c381ce29b98aa71a5998094054171c5b9a9e0f0084289ad2ccf6": {
+    "fees": {
+      "base": 0.00000227,
+      "modified": 0.00000227,
+      "ancestor": 0.00000227,
+      "descendant": 0.00000908
+    },
+    "vsize": 226,
+    "weight": 904,
+    "fee": 0.00000227,
+    "modifiedfee": 0.00000227,
+    "time": 1588782712,
+    "height": 629232,
+    "descendantcount": 4,
+    "descendantsize": 903,
+    "descendantfees": 908,
+    "ancestorcount": 1,
+    "ancestorsize": 226,
+    "ancestorfees": 227,
+    "wtxid": "01123eb3ec64c381ce29b98aa71a5998094054171c5b9a9e0f0084289ad2ccf6",
+    "depends": [
+    ],
+    "spentby": [
+      "8a2ba899956359eb278f6daffc8ae0f5dfb631a67dbfe57687f665b20bcf063e"
+    ],
+    "bip125-replaceable": false
+  },
+  "a5823eb3ec64c381ce29b98aa71a5998094054171c5b9a9e0f0084289ad2ccf6": {
+    "fees": {
+      "base": 0.00000227,
+      "modified": 0.00000227,
+      "ancestor": 0.00000227,
+      "descendant": 0.00000908
+    },
+    "vsize": 226,
+    "weight": 904,
+    "fee": 0.00000227,
+    "modifiedfee": 0.00000227,
+    "time": 1588782712,
+    "height": 629232,
+    "descendantcount": 4,
+    "descendantsize": 903,
+    "descendantfees": 908,
+    "ancestorcount": 1,
+    "ancestorsize": 226,
+    "ancestorfees": 227,
+    "wtxid": "a5823eb3ec64c381ce29b98aa71a5998094054171c5b9a9e0f0084289ad2ccf6",
+    "depends": [
+    ],
+    "spentby": [
+      "9a9b73b2a6ea86a495662d5e90cda9fadbf70c470231dff6b4f9286707f30812",
+      "6a2ba899956359eb278f6daffc8ae0f5dfb631a67dbfe57687f665b20bcf063e"
+    ],
+    "bip125-replaceable": false
+  },
+  "b5823eb3ec64c381ce29b98aa71a5998094054171c5b9a9e0f0084289ad2ccf6": {
+    "fees": {
+      "base": 0.00000227,
+      "modified": 0.00000227,
+      "ancestor": 0.00000227,
+      "descendant": 0.00000908
+    },
+    "vsize": 226,
+    "weight": 904,
+    "fee": 0.00000227,
+    "modifiedfee": 0.00000227,
+    "time": 1588782712,
+    "height": 629232,
+    "descendantcount": 4,
+    "descendantsize": 903,
+    "descendantfees": 908,
+    "ancestorcount": 1,
+    "ancestorsize": 226,
+    "ancestorfees": 227,
+    "wtxid": "b5823eb3ec64c381ce29b98aa71a5998094054171c5b9a9e0f0084289ad2ccf6",
+    "depends": [
+    ],
+    "spentby": [
+      "6a2ba899956359eb278f6daffc8ae0f5dfb631a67dbfe57687f665b20bcf063e",
+      "8a2ba899956359eb278f6daffc8ae0f5dfb631a67dbfe57687f665b20bcf063e"
+    ],
+    "bip125-replaceable": false
+  },
+  "6a2ba899956359eb278f6daffc8ae0f5dfb631a67dbfe57687f665b20bcf063e": {
+    "fees": {
+      "base": 0.00000227,
+      "modified": 0.00000227,
+      "ancestor": 0.00000454,
+      "descendant": 0.00000454
+    },
+    "vsize": 226,
+    "weight": 904,
+    "fee": 0.00000227,
+    "modifiedfee": 0.00000227,
+    "time": 1588791108,
+    "height": 629253,
+    "descendantcount": 2,
+    "descendantsize": 452,
+    "descendantfees": 454,
+    "ancestorcount": 2,
+    "ancestorsize": 452,
+    "ancestorfees": 454,
+    "wtxid": "6a2ba899956359eb278f6daffc8ae0f5dfb631a67dbfe57687f665b20bcf063e",
+    "depends": [
+      "a5823eb3ec64c381ce29b98aa71a5998094054171c5b9a9e0f0084289ad2ccf6",
+      "b5823eb3ec64c381ce29b98aa71a5998094054171c5b9a9e0f0084289ad2ccf6"
+    ],
+    "spentby": [
+      "154ff366005101ed97c044782d82e3abf44073968bd0db21c9f5b27296aa3de2"
+    ],
+    "bip125-replaceable": false
+  },
+  "8a2ba899956359eb278f6daffc8ae0f5dfb631a67dbfe57687f665b20bcf063e": {
+    "fees": {
+      "base": 0.00000227,
+      "modified": 0.00000227,
+      "ancestor": 0.00000454,
+      "descendant": 0.00000454
+    },
+    "vsize": 226,
+    "weight": 904,
+    "fee": 0.00000227,
+    "modifiedfee": 0.00000227,
+    "time": 1588791108,
+    "height": 629253,
+    "descendantcount": 2,
+    "descendantsize": 452,
+    "descendantfees": 454,
+    "ancestorcount": 2,
+    "ancestorsize": 452,
+    "ancestorfees": 454,
+    "wtxid": "8a2ba899956359eb278f6daffc8ae0f5dfb631a67dbfe57687f665b20bcf063e",
+    "depends": [
+      "b5823eb3ec64c381ce29b98aa71a5998094054171c5b9a9e0f0084289ad2ccf6",
+      "01123eb3ec64c381ce29b98aa71a5998094054171c5b9a9e0f0084289ad2ccf6"
+    ],
+    "spentby": [
+    ],
+    "bip125-replaceable": false
+  },
+  "9a9b73b2a6ea86a495662d5e90cda9fadbf70c470231dff6b4f9286707f30812": {
+    "fees": {
+      "base": 0.00000227,
+      "modified": 0.00000227,
+      "ancestor": 0.00000454,
+      "descendant": 0.00000227
+    },
+    "vsize": 225,
+    "weight": 900,
+    "fee": 0.00000227,
+    "modifiedfee": 0.00000227,
+    "time": 1588783527,
+    "height": 629237,
+    "descendantcount": 1,
+    "descendantsize": 225,
+    "descendantfees": 227,
+    "ancestorcount": 2,
+    "ancestorsize": 451,
+    "ancestorfees": 454,
+    "wtxid": "9a9b73b2a6ea86a495662d5e90cda9fadbf70c470231dff6b4f9286707f30812",
+    "depends": [
+      "a5823eb3ec64c381ce29b98aa71a5998094054171c5b9a9e0f0084289ad2ccf6"
+    ],
+    "spentby": [
+    ],
+    "bip125-replaceable": false
+  },
+  "154ff366005101ed97c044782d82e3abf44073968bd0db21c9f5b27296aa3de2": {
+    "fees": {
+      "base": 0.00000227,
+      "modified": 0.00000227,
+      "ancestor": 0.00000681,
+      "descendant": 0.00000227
+    },
+    "vsize": 226,
+    "weight": 904,
+    "fee": 0.00000227,
+    "modifiedfee": 0.00000227,
+    "time": 1588797047,
+    "height": 629259,
+    "descendantcount": 1,
+    "descendantsize": 226,
+    "descendantfees": 227,
+    "ancestorcount": 3,
+    "ancestorsize": 678,
+    "ancestorfees": 681,
+    "wtxid": "154ff366005101ed97c044782d82e3abf44073968bd0db21c9f5b27296aa3de2",
+    "depends": [
+      "6a2ba899956359eb278f6daffc8ae0f5dfb631a67dbfe57687f665b20bcf063e"
+    ],
+    "spentby": [
+    ],
+    "bip125-replaceable": false
+  }
+}

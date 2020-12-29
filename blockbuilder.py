@@ -92,8 +92,8 @@ def clusterTx(transaction, clusters, txClusterMap):
 
 
 def clusterMempool(mempool):
-    clusters = {}  # Maps lowest txid to list of txids
-    txClusterMap = {}  # Maps txid to its representative's txid
+    clusters = {}  # Maps representative txid to cluster
+    txClusterMap = {}  # Maps txid to its cluster's representative
 
     # Initialize txClusterMap with identity
     for txid in mempool.getTxs().keys():
