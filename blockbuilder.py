@@ -13,6 +13,30 @@ class Transaction():
         return list(set([self.txid] + self.descendants + self.parents))
 
 
+class CandidateSet():
+    def __init__(self, txs):
+        for tx in txs:
+            for p in txs[tx].parents:
+                assert p in txs.keys(), "parent " + str(p) + " of " + txs[tx].txid + " is not in txs"
+        self.txs = txs
+        self.weight = self.getWeight(txs)
+
+    def getWeight(self, txs):
+        totalWeight = 0
+        for tx in txs:
+            totalWeight += txs[tx].weight
+        return totalWeight
+
+    def getFees(self, txs):
+        totalFees = 0
+        for tx in txs:
+            totalFees += txs[tx].fee
+        return totalFees
+
+    def getEffectiveFeerate(self, txs):
+        return self.getFees(txs)/self.getWeight(txs)
+
+
 class Cluster():
     def __init__(self, tx):
         self.representative = tx.txid
@@ -57,8 +81,13 @@ class Mempool():
                     continue
                 line = line.rstrip('\n')
                 elements = line.split(SplitBy)
-                self.txs[elements[0]] = Transaction(elements[0], int(elements[1]), int(elements[2]), elements[3:])
+                txid = elements[0]
+                descendants = elements[3:]
+                self.txs[txid] = Transaction(txid, int(elements[1]), int(elements[2]), descendants)
         imp_file.close()
+        for tx in self.txs:
+            for d in self.txs[tx].descendants:
+                self.txs[d].parents.append(tx)
 
     def getTx(self, txid):
         return self.txs[txid]
