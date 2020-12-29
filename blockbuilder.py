@@ -6,8 +6,11 @@ class Transaction():
         self.txid = txid
         self.fee = int(fee)
         self.weight = int(weight)
-        self.descendants = []
+        self.descendants = descendants
         self.parents = parents
+
+    def getLocalClusterTxids(self):
+        return list(set([self.txid] + self.descendants + self.parents))
 
 
 class Cluster():
@@ -63,14 +66,8 @@ def getRepresentativeTxid(txids):
     return txids[0]
 
 
-def getLocalClusterTxids(txid, transaction):
-    txids = [txid] + transaction.descendants + transaction.parents
-    print("txids of getLocalClusterTxids for " + str(txid) + ": " + str(txids))
-    return txids
-
-
 def clusterTx(transaction, clusters, txClusterMap):
-    localClusterTxids = getLocalClusterTxids(transaction.txid, transaction)
+    localClusterTxids = transaction.getLocalClusterTxids()
 
     # Check for each tx in local cluster if it belongs to another cluster
     for lct in localClusterTxids:
@@ -87,9 +84,10 @@ def clusterTx(transaction, clusters, txClusterMap):
 
     txClusterMap[transaction.txid] = repTxid
     if repTxid in clusters:
-        clusters[repTxid] = list(set(clusters[repTxid] + [transaction.txid]))
+        clusters[repTxid] = list(set(clusters[repTxid] + localClusterTxids))
     else:
-        clusters[repTxid] = list({repTxid, transaction.txid})
+        clusters[repTxid] = list(set([repTxid] + localClusterTxids))
+    clusters[repTxid].sort()
     return clusters
 
 

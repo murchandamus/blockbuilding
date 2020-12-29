@@ -44,9 +44,9 @@ class TestBlockbuilder(unittest.TestCase):
     def test_get_local_cluster_txids(self):
         print("localcluster")
         self.assertEqual(
-                blockbuilder.getLocalClusterTxids("abc", testDict["abc"]),
-                ["abc", "123"],
-                "Should be ['abc', '123']"
+                testDict["abc"].getLocalClusterTxids(),
+                ["123", "abc"],
+                "Should be ['123','abc']"
             )
 
     def test_cluster_tx(self):
@@ -54,6 +54,10 @@ class TestBlockbuilder(unittest.TestCase):
         self.assertDictEqual(
                 blockbuilder.clusterTx(testDict["abc"], {}, {}),
                 {"123": ["123", "abc"]}
+            )
+        self.assertDictEqual(
+                blockbuilder.clusterTx(testDict["qrs"], {}, {}),
+                {"nop": ["nop", "qrs", "tuv"]}
             )
 
 
