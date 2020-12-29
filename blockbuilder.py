@@ -13,13 +13,14 @@ class Transaction():
         return list(set([self.txid] + self.descendants + self.parents))
 
 
+# A set of transactions that forms a unit and may be added to a block as is
 class CandidateSet():
     def __init__(self, txs):
         for tx in txs:
             for p in txs[tx].parents:
-                assert p in txs.keys(), "parent " + str(p) + " of " + txs[tx].txid + " is not in txs"
+                if p not in txs.keys():
+                    raise TypeError("parent " + str(p) + " of " + txs[tx].txid + " is not in txs")
         self.txs = txs
-        self.weight = self.getWeight(txs)
 
     def getWeight(self, txs):
         totalWeight = 0
@@ -37,6 +38,7 @@ class CandidateSet():
         return self.getFees(txs)/self.getWeight(txs)
 
 
+# Maximal connected sets of transactions
 class Cluster():
     def __init__(self, tx):
         self.representative = tx.txid
@@ -58,7 +60,8 @@ class Cluster():
 class Mempool():
     def __init__(self):
         self.txs = {}
-        self.clusters = {}
+        self.clusters = {}  # Maps representative txid to cluster
+        self.txClusterMap = {}  # Maps txid to its cluster
 
     def fromJSON(self, filePath):
         txsJSON = {}
@@ -98,12 +101,13 @@ class Mempool():
         return self.txs
 
     def cluster(self):
+        # reset before clustering
         self.clusters = {}  # Maps representative txid to cluster
-        txClusterMap = {}  # Maps txid to its cluster's representative
+        self.txClusterMap = {}  # Maps txid to its cluster
 
         # Initialize txClusterMap with identity
         for txid in self.getTxs().keys():
-            txClusterMap[txid] = txid
+            self.txClusterMap[txid] = txid
 
         anyUpdated = True
 
@@ -112,9 +116,9 @@ class Mempool():
             self.clusters = {}
             anyUpdated = False
             for txid, vals in self.getTxs().items():
-                repBefore = txClusterMap[txid]
-                self.clusters = clusterTx(vals, self.clusters, txClusterMap)
-                repAfter = txClusterMap[txid]
+                repBefore = self.txClusterMap[txid]
+                self.clusters = clusterTx(vals, self.clusters, self.txClusterMap)
+                repAfter = self.txClusterMap[txid]
                 anyUpdated = anyUpdated or repAfter != repBefore
 
         return self.clusters
