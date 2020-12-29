@@ -17,7 +17,7 @@ class TestBlockbuilder(unittest.TestCase):
     def test_candidate_set(self):
         blockbuilder.CandidateSet({"123": testDict["123"], "abc": testDict["abc"]})
         # Fails intentionally.
-        blockbuilder.CandidateSet({"abc": testDict["abc"]})
+        # blockbuilder.CandidateSet({"abc": testDict["abc"]})
 
     def test_parse_from_TXT(self):
         mempool = blockbuilder.Mempool()

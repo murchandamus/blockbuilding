@@ -54,9 +54,11 @@ class Cluster():
         # return best
 
 
+# The Mempool class represents a transient state of what is available to be used in a blocktemplate
 class Mempool():
     def __init__(self):
         self.txs = {}
+        self.clusters = {}
 
     def fromJSON(self, filePath):
         txsJSON = {}
@@ -95,6 +97,28 @@ class Mempool():
     def getTxs(self):
         return self.txs
 
+    def cluster(self):
+        self.clusters = {}  # Maps representative txid to cluster
+        txClusterMap = {}  # Maps txid to its cluster's representative
+
+        # Initialize txClusterMap with identity
+        for txid in self.getTxs().keys():
+            txClusterMap[txid] = txid
+
+        anyUpdated = True
+
+        # Recursively group clusters until nothing changes
+        while (anyUpdated):
+            self.clusters = {}
+            anyUpdated = False
+            for txid, vals in self.getTxs().items():
+                repBefore = txClusterMap[txid]
+                self.clusters = clusterTx(vals, self.clusters, txClusterMap)
+                repAfter = txClusterMap[txid]
+                anyUpdated = anyUpdated or repAfter != repBefore
+
+        return self.clusters
+
 
 def getRepresentativeTxid(txids):
     txids.sort()
@@ -126,29 +150,6 @@ def clusterTx(transaction, clusters, txClusterMap):
     return clusters
 
 
-def clusterMempool(mempool):
-    clusters = {}  # Maps representative txid to cluster
-    txClusterMap = {}  # Maps txid to its cluster's representative
-
-    # Initialize txClusterMap with identity
-    for txid in mempool.getTxs().keys():
-        txClusterMap[txid] = txid
-
-    anyUpdated = True
-
-    # Recursively group clusters until nothing changes
-    while (anyUpdated):
-        clusters = {}
-        anyUpdated = False
-        for txid, vals in mempool.getTxs().items():
-            repBefore = txClusterMap[txid]
-            clusters = clusterTx(vals, clusters, txClusterMap)
-            repAfter = txClusterMap[txid]
-            anyUpdated = anyUpdated or repAfter != repBefore
-
-    return clusters
-
-
 if __name__ == '__main__':
     # mempoolFileString = "data/mempool.json"
     # mempoolFileString = "/home/murch/Workspace/blockbuilding/data/mini-mempool.json"
@@ -156,7 +157,7 @@ if __name__ == '__main__':
     mempool = Mempool()
     mempool.fromTXT(mempoolFileString, " ")
     # mempool.fromJSON(mempoolFileString)
-    clusters = clusterMempool(mempool)
+    clusters = mempool.cluster()
     # print(json.dumps(clusters, 2))
     print(clusters)
     # print(json.dumps(clusters))
