@@ -12,6 +12,9 @@ class Transaction():
     def getLocalClusterTxids(self):
         return list(set([self.txid] + self.descendants + self.parents))
 
+    def __str__(self):
+        return "{txid: " + self.txid + ", descendants: " + str(self.descendants) + ", parents: " + str(self.parents) + "}"
+
 
 # A set of transactions that forms a unit and may be added to a block as is
 class CandidateSet():
@@ -47,6 +50,9 @@ class Cluster():
     def addTx(self, tx):
         self.txs[tx.txid] = tx
         self.representative = min(tx.txid, self.representative)
+
+    def __str__(self):
+        return "{" + self.representative + ": " + str(self.txs.keys()) + "}"
 
     def getBestCandidateSet(self):
         print("not implemented")
@@ -87,12 +93,11 @@ class Mempool():
                 line = line.rstrip('\n')
                 elements = line.split(SplitBy)
                 txid = elements[0]
-                descendants = elements[3:]
-                self.txs[txid] = Transaction(txid, int(elements[1]), int(elements[2]), descendants)
+                self.txs[txid] = Transaction(txid, int(elements[1]), int(elements[2]), [], elements[3:])
         imp_file.close()
-        for tx in self.txs:
-            for d in self.txs[tx].descendants:
-                self.txs[d].parents.append(tx)
+        for tx in self.txs.values():
+            for d in tx.descendants:
+                self.txs[d].parents.append(tx.txid)
 
     def getTx(self, txid):
         return self.txs[txid]
@@ -101,25 +106,23 @@ class Mempool():
         return self.txs
 
     def cluster(self):
-        # reset before clustering
-        self.clusters = {}  # Maps representative txid to cluster
-        self.txClusterMap = {}  # Maps txid to its cluster
-
-        # Initialize txClusterMap with identity
-        for txid in self.getTxs().keys():
-            self.txClusterMap[txid] = txid
-
-        anyUpdated = True
-
-        # Recursively group clusters until nothing changes
-        while (anyUpdated):
-            self.clusters = {}
-            anyUpdated = False
-            for txid, vals in self.getTxs().items():
-                repBefore = self.txClusterMap[txid]
-                self.clusters = clusterTx(vals, self.clusters, self.txClusterMap)
-                repAfter = self.txClusterMap[txid]
-                anyUpdated = anyUpdated or repAfter != repBefore
+        self.clusters = {}
+        self.txClusterMap = {}
+        for txid, tx in self.getTxs().items():
+            if txid in self.txClusterMap.keys():
+                continue
+            localCluster = Cluster(tx)
+            localClusterTxids = tx.getLocalClusterTxids()
+            while len(localClusterTxids) > 0:
+                nextTxid = localClusterTxids.pop()
+                if nextTxid in localCluster.txs.keys():
+                    continue
+                nextTx = self.getTx(nextTxid)
+                localCluster.addTx(nextTx)
+                localClusterTxids += nextTx.getLocalClusterTxids()
+            self.clusters[localCluster.representative] = localCluster
+            for lct in localCluster.txs.keys():
+                self.txClusterMap[lct] = localCluster.representative
 
         return self.clusters
 
@@ -162,6 +165,4 @@ if __name__ == '__main__':
     mempool.fromTXT(mempoolFileString, " ")
     # mempool.fromJSON(mempoolFileString)
     clusters = mempool.cluster()
-    # print(json.dumps(clusters, 2))
     print(clusters)
-    # print(json.dumps(clusters))
