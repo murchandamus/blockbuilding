@@ -75,7 +75,6 @@ class Cluster():
             self.candidates = list(filter(lambda d: d.getWeight() <= weightLimit, self.candidates))
 
         return self.candidates[-1]
-        # TODO: Limit by weight
 
 
 # The Mempool class represents a transient state of what is available to be used in a blocktemplate
@@ -146,6 +145,21 @@ class Mempool():
                 self.txClusterMap[lct] = localCluster.representative
 
         return self.clusters
+
+    def popBestCandidateSet(self, weightLimit=40000000):
+        self.cluster()
+        # Initialize with all transactions from the first cluster
+        bestCandidateSet = CandidateSet(list(self.clusters.values())[0].txs)
+        for c in self.clusters.values():
+            clusterBest = c.getBestCandidateSet(weightLimit)
+            if not bestCandidateSet:
+                bestCandidateSet = clusterBest
+            else:
+                if clusterBest.getEffectiveFeerate() > bestCandidateSet.getEffectiveFeerate():
+                    bestCandidateSet = clusterBest
+        for txid in bestCandidateSet.txs.keys():
+            self.txs.pop(txid)
+        return bestCandidateSet
 
 
 def getRepresentativeTxid(txids):

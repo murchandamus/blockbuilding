@@ -124,6 +124,18 @@ class TestBlockbuilder(unittest.TestCase):
                 ["xyz"]
             )
 
+    def test_pop_best_candidate_set(self):
+        mempool = blockbuilder.Mempool()
+        mempool.fromDict(testDict)
+
+        bestCandidateSet = mempool.popBestCandidateSet()
+        expectedTxids = ["nop", "qrs"]
+
+        self.assertEqual(len(bestCandidateSet.txs), 2)
+        self.assertListEqual(list(bestCandidateSet.txs.keys()), expectedTxids)
+        for txid in expectedTxids:
+            self.assertNotIn(txid, mempool.txs.keys())
+
 
 if __name__ == '__main__':
     unittest.main()
