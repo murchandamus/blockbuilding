@@ -63,8 +63,8 @@ class TestBlockbuilder(unittest.TestCase):
     def test_get_local_cluster_txids(self):
         print("localcluster")
         self.assertEqual(
-                testDict["abc"].getLocalClusterTxids(),
-                ["123", "abc"],
+                set(testDict["abc"].getLocalClusterTxids()),
+                set(["123", "abc"]),
                 "Should be ['123','abc']"
             )
 

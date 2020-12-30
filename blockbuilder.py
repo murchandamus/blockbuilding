@@ -26,16 +26,11 @@ class CandidateSet():
         self.txs = txs
 
     def getWeight(self, txs):
-        totalWeight = 0
-        for tx in txs:
-            totalWeight += txs[tx].weight
-        return totalWeight
+        return sum([tx.weight for tx in [*txs.values()]])
 
     def getFees(self, txs):
-        totalFees = 0
-        for tx in txs:
-            totalFees += txs[tx].fee
-        return totalFees
+        return sum([tx.fee for tx in [*txs.values()]])
+
 
     def getEffectiveFeerate(self, txs):
         return self.getFees(txs)/self.getWeight(txs)
