@@ -85,6 +85,10 @@ class Mempool():
         self.clusters = {}  # Maps representative txid to cluster
         self.txClusterMap = {}  # Maps txid to its cluster
 
+    def fromDict(self, txDict):
+        for txid, tx in txDict.items():
+            self.txs[txid] = tx
+
     def fromJSON(self, filePath):
         txsJSON = {}
         with open(filePath, 'r') as import_file:
@@ -147,31 +151,6 @@ class Mempool():
 def getRepresentativeTxid(txids):
     txids.sort()
     return txids[0]
-
-
-def clusterTx(transaction, clusters, txClusterMap):
-    localClusterTxids = transaction.getLocalClusterTxids()
-
-    # Check for each tx in local cluster if it belongs to another cluster
-    for lct in localClusterTxids:
-        if lct not in txClusterMap.keys():
-            txClusterMap[lct] = lct
-        lctRep = txClusterMap[lct]
-        localClusterTxids = localClusterTxids + [lctRep]
-        # Check recursively if ltcRep belongs to another cluster
-        while (lctRep != txClusterMap[lctRep]):
-            lctRep = txClusterMap[lctRep]
-            localClusterTxids = localClusterTxids + [lctRep]
-
-    repTxid = getRepresentativeTxid(localClusterTxids)
-
-    txClusterMap[transaction.txid] = repTxid
-    if repTxid in clusters:
-        clusters[repTxid] = list(set(clusters[repTxid] + localClusterTxids))
-    else:
-        clusters[repTxid] = list(set([repTxid] + localClusterTxids))
-    clusters[repTxid].sort()
-    return clusters
 
 
 if __name__ == '__main__':

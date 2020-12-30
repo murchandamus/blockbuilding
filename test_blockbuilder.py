@@ -106,15 +106,22 @@ class TestBlockbuilder(unittest.TestCase):
                 "Should be ['123','abc']"
             )
 
-    def test_cluster_tx(self):
-        print("Start clusterTx")
-        self.assertDictEqual(
-                blockbuilder.clusterTx(testDict["abc"], {}, {}),
-                {"123": ["123", "abc"]}
+    def test_mempool_cluster(self):
+        print("Start mempool.cluster")
+        mempool = blockbuilder.Mempool()
+        mempool.fromDict(testDict)
+        clusters = mempool.cluster()
+        self.assertEqual(
+                list(clusters["123"].txs.keys()),
+                ["123", "abc"]
             )
-        self.assertDictEqual(
-                blockbuilder.clusterTx(testDict["qrs"], {}, {}),
-                {"nop": ["nop", "qrs", "tuv"]}
+        self.assertEqual(
+                list(clusters["nop"].txs.keys()),
+                ["nop", "qrs", "tuv"]
+            )
+        self.assertEqual(
+                list(clusters["xyz"].txs.keys()),
+                ["xyz"]
             )
 
 
