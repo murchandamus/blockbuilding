@@ -22,11 +22,15 @@ class TestBlockbuilder(unittest.TestCase):
 
     def test_candidate_set_get_weight(self):
         cand = blockbuilder.CandidateSet({"123": testDict["123"], "abc": testDict["abc"]})
-        self.assertEqual(cand.getWeight(cand.txs), 200)
+        self.assertEqual(cand.getWeight(), 200)
 
     def test_candidate_set_get_fees(self):
         cand = blockbuilder.CandidateSet({"123": testDict["123"], "abc": testDict["abc"]})
-        self.assertEqual(cand.getFees(cand.txs), 200)
+        self.assertEqual(cand.getFees(), 200)
+
+    def test_candidate_set_get_effective_feerate(self):
+        cand = blockbuilder.CandidateSet({"123": testDict["123"], "abc": testDict["abc"]})
+        self.assertEqual(cand.getEffectiveFeerate(), 1)
 
     def build_nop_cluster(self):
         cluster = blockbuilder.Cluster(testDict["nop"])

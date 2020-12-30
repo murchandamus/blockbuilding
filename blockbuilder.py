@@ -32,14 +32,14 @@ class CandidateSet():
         for txid, tx in txs.items():
             self.txs[txid] = tx
 
-    def getWeight(self, txs):
-        return sum(tx.weight for tx in txs.values())
+    def getWeight(self):
+        return sum(tx.weight for tx in self.txs.values())
 
-    def getFees(self, txs):
-        return sum(tx.fee for tx in txs.values())
+    def getFees(self):
+        return sum(tx.fee for tx in self.txs.values())
 
-    def getEffectiveFeerate(self, txs):
-        return self.getFees(txs)/self.getWeight(txs)
+    def getEffectiveFeerate(self):
+        return self.getFees()/self.getWeight()
 
 
 # Maximal connected sets of transactions
@@ -70,7 +70,7 @@ class Cluster():
 
     def getBestCandidateSet(self):
         self.generateAllCandidateSets()
-        self.candidates.sort(key=lambda cand: cand.getEffectiveFeerate(cand.txs))
+        self.candidates.sort(key=lambda cand: cand.getEffectiveFeerate())
         return self.candidates[-1]
         # TODO: Limit by weight
 
