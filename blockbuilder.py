@@ -68,9 +68,12 @@ class Cluster():
             except TypeError:
                 pass
 
-    def getBestCandidateSet(self):
+    def getBestCandidateSet(self, weightLimit=0):
         self.generateAllCandidateSets()
         self.candidates.sort(key=lambda cand: cand.getEffectiveFeerate())
+        if weightLimit > 0:
+            self.candidates = list(filter(lambda d: d.getWeight() <= weightLimit, self.candidates))
+
         return self.candidates[-1]
         # TODO: Limit by weight
 

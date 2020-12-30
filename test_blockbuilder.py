@@ -53,6 +53,11 @@ class TestBlockbuilder(unittest.TestCase):
         best = cluster.getBestCandidateSet()
         self.assertEqual(list(best.txs.keys()), ["nop", "qrs"])
 
+    def test_get_best_candidate_set_with_limit(self):
+        cluster = self.build_nop_cluster()
+        best = cluster.getBestCandidateSet(100)
+        self.assertEqual(list(best.txs.keys()), ["nop"])
+
     def test_parse_from_TXT(self):
         mempool = blockbuilder.Mempool()
         mempool.fromTXT("data/mempoolTXT")
