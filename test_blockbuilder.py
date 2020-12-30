@@ -4,9 +4,9 @@ import blockbuilder
 testDict = {
     "123": blockbuilder.Transaction("123", 100, 100, [], ["abc"]),
     "abc": blockbuilder.Transaction("abc", 100, 100, ["123"], []),
-    "nop": blockbuilder.Transaction("nop", 100, 100, [], ["qrs"]),
-    "qrs": blockbuilder.Transaction("qrs", 1, 1, ["nop"], ["tuv"]),
-    "tuv": blockbuilder.Transaction("tuv", 1, 1, ["qrs"], []),
+    "nop": blockbuilder.Transaction("nop", 1000, 100, [], ["qrs"]),  # medium feerate
+    "qrs": blockbuilder.Transaction("qrs", 10000, 100, ["nop"], ["tuv"]),  # high feerate
+    "tuv": blockbuilder.Transaction("tuv", 100, 100, ["qrs"], []),  # low feerate
     "xyz": blockbuilder.Transaction("xyz", 1, 1, [], [])
 }
 
@@ -20,17 +20,34 @@ class TestBlockbuilder(unittest.TestCase):
     def test_missing_ancestor_candidate_set(self):
         self.assertRaises(TypeError, blockbuilder.CandidateSet, {"abc": testDict["abc"]})
 
-    def test_get_all_candidate_sets(self):
+    def test_candidate_set_get_weight(self):
+        cand = blockbuilder.CandidateSet({"123": testDict["123"], "abc": testDict["abc"]})
+        self.assertEqual(cand.getWeight(cand.txs), 200)
+
+    def test_candidate_set_get_fees(self):
+        cand = blockbuilder.CandidateSet({"123": testDict["123"], "abc": testDict["abc"]})
+        self.assertEqual(cand.getFees(cand.txs), 200)
+
+    def build_nop_cluster(self):
         cluster = blockbuilder.Cluster(testDict["nop"])
         cluster.addTx(testDict["qrs"])
         cluster.addTx(testDict["tuv"])
 
+        return cluster
+
+    def test_get_all_candidate_sets(self):
+        cluster = self.build_nop_cluster()
         cluster.generateAllCandidateSets()
-        expectedSets = [[], ["nop"], ["nop", "qrs"], ["nop", "qrs", "tuv"]]
+        expectedSets = [["nop"], ["nop", "qrs"], ["nop", "qrs", "tuv"]]
 
         for cand in cluster.candidates:
             self.assertEqual(True, sorted(cand.txs.keys()) in expectedSets)
             self.assertEqual(len(cluster.candidates), len(expectedSets))
+
+    def test_get_best_candidate_set(self):
+        cluster = self.build_nop_cluster()
+        best = cluster.getBestCandidateSet()
+        self.assertEqual(list(best.txs.keys()), ["nop", "qrs"])
 
     def test_parse_from_TXT(self):
         mempool = blockbuilder.Mempool()

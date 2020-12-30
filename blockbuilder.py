@@ -23,6 +23,8 @@ class Transaction():
 class CandidateSet():
     def __init__(self, txs):
         self.txs = {}
+        if len(txs) < 1:
+            raise TypeError("set cannot be empty")
         for txid, tx in txs.items():
             for p in tx.parents:
                 if p not in txs.keys():
@@ -67,12 +69,10 @@ class Cluster():
                 pass
 
     def getBestCandidateSet(self):
-        print("not implemented")
+        self.generateAllCandidateSets()
+        self.candidates.sort(key=lambda cand: cand.getEffectiveFeerate(cand.txs))
+        return self.candidates[-1]
         # TODO: Limit by weight
-        # generate powerset
-        # filter for validity
-        # sort by effective feerate
-        # return best
 
 
 # The Mempool class represents a transient state of what is available to be used in a blocktemplate
