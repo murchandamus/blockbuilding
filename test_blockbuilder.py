@@ -20,6 +20,18 @@ class TestBlockbuilder(unittest.TestCase):
     def test_missing_ancestor_candidate_set(self):
         self.assertRaises(TypeError, blockbuilder.CandidateSet, {"abc": testDict["abc"]})
 
+    def test_get_all_candidate_sets(self):
+        cluster = blockbuilder.Cluster(testDict["nop"])
+        cluster.addTx(testDict["qrs"])
+        cluster.addTx(testDict["tuv"])
+
+        cluster.generateAllCandidateSets()
+        expectedSets = [[], ["nop"], ["nop", "qrs"], ["nop", "qrs", "tuv"]]
+
+        for cand in cluster.candidates:
+            self.assertEqual(True, sorted(cand.txs.keys()) in expectedSets)
+            self.assertEqual(len(cluster.candidates), len(expectedSets))
+
     def test_parse_from_TXT(self):
         mempool = blockbuilder.Mempool()
         mempool.fromTXT("data/mempoolTXT")
@@ -63,8 +75,8 @@ class TestBlockbuilder(unittest.TestCase):
     def test_get_local_cluster_txids(self):
         print("localcluster")
         self.assertEqual(
-                set(testDict["abc"].getLocalClusterTxids()),
-                set(["123", "abc"]),
+                sorted(testDict["abc"].getLocalClusterTxids()),
+                ["123", "abc"],
                 "Should be ['123','abc']"
             )
 

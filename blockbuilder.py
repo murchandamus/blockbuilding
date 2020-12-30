@@ -1,4 +1,5 @@
 import json
+from itertools import chain, combinations
 
 
 class Transaction():
@@ -13,24 +14,27 @@ class Transaction():
         return list(set([self.txid] + self.descendants + self.parents))
 
     def __str__(self):
-        return "{txid: " + self.txid + ", descendants: " + str(self.descendants) + ", parents: " + str(self.parents) + "}"
+        return "{txid: " + self.txid
+        + ", descendants: " + str(self.descendants)
+        + ", parents: " + str(self.parents) + "}"
 
 
 # A set of transactions that forms a unit and may be added to a block as is
 class CandidateSet():
     def __init__(self, txs):
-        for tx in txs:
-            for p in txs[tx].parents:
+        self.txs = {}
+        for txid, tx in txs.items():
+            for p in tx.parents:
                 if p not in txs.keys():
-                    raise TypeError("parent " + str(p) + " of " + txs[tx].txid + " is not in txs")
-        self.txs = txs
+                    raise TypeError("parent " + str(p) + " of " + txid + " is not in txs")
+        for txid, tx in txs.items():
+            self.txs[txid] = tx
 
     def getWeight(self, txs):
-        return sum([tx.weight for tx in [*txs.values()]])
+        return sum(tx.weight for tx in txs.values())
 
     def getFees(self, txs):
-        return sum([tx.fee for tx in [*txs.values()]])
-
+        return sum(tx.fee for tx in txs.values())
 
     def getEffectiveFeerate(self, txs):
         return self.getFees(txs)/self.getWeight(txs)
@@ -41,6 +45,7 @@ class Cluster():
     def __init__(self, tx):
         self.representative = tx.txid
         self.txs = {tx.txid: tx}
+        self.candidates = []
 
     def addTx(self, tx):
         self.txs[tx.txid] = tx
@@ -49,8 +54,21 @@ class Cluster():
     def __str__(self):
         return "{" + self.representative + ": " + str(self.txs.keys()) + "}"
 
+    def generateAllCandidateSets(self):
+        s = self.txs.values()
+        sets = chain.from_iterable(combinations(s, r) for r in range(len(s)+1))
+        for candSet in sets:
+            try:
+                tDict = {}
+                for t in candSet:
+                    tDict[t.txid] = t
+                self.candidates.append(CandidateSet(tDict))
+            except TypeError:
+                pass
+
     def getBestCandidateSet(self):
         print("not implemented")
+        # TODO: Limit by weight
         # generate powerset
         # filter for validity
         # sort by effective feerate
