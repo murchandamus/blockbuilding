@@ -87,10 +87,9 @@ class Mempool():
 
     def fromJSON(self, filePath):
         txsJSON = {}
-        with open(filePath) as f:
-            txsJSON = json.load(f)
+        with open(filePath, 'r') as import_file:
+            txsJSON = json.load(import_file)
 
-            # Initialize txClusterMap with identity
             for txid in txsJSON.keys():
                 self.txs[txid] = Transaction(
                     txid,
@@ -99,18 +98,20 @@ class Mempool():
                     txsJSON[txid]["depends"],
                     txsJSON[txid]["spentby"]
                 )
-        f.close()
+        import_file.close()
 
     def fromTXT(self, filePath, SplitBy=" "):
-        with open(filePath, 'r') as imp_file:
-            for line in imp_file:
+        with open(filePath, 'r') as import_file:
+            for line in import_file:
                 if 'txid' in line:
                     continue
                 line = line.rstrip('\n')
                 elements = line.split(SplitBy)
                 txid = elements[0]
+                # parents are not stored in this file type
                 self.txs[txid] = Transaction(txid, int(elements[1]), int(elements[2]), [], elements[3:])
-        imp_file.close()
+        import_file.close()
+        # backfill parents from descendants
         for tx in self.txs.values():
             for d in tx.descendants:
                 self.txs[d].parents.append(tx.txid)
