@@ -1,6 +1,23 @@
 import json
 from itertools import chain, combinations
 
+class Blockbuilder():
+    def __init__(self, mempool):
+        self.mempool = mempool
+        self.selectedTxs = []
+        # 4M weight units minus header of 80 bytes
+        self.availableWeight = 4_000_000-4*80
+
+    def buildBlockTemplate(self):
+        while len(self.mempool.txs) > 0 and self.availableWeight > 0:
+            bestCandidateSet = self.mempool.popBestCandidateSet(self.availableWeight)
+            if len(bestCandidateSet.txs) == 0:
+                break
+            for tx in bestCandidateSet.txs.values():
+                self.selectedTxs.append(tx)
+        self.availableWeight -= bestCandidateSet.getWeight()
+        return self.selectedTxs
+
 
 class Transaction():
     def __init__(self, txid, fee, weight, parents=[], descendants=[]):

@@ -136,6 +136,15 @@ class TestBlockbuilder(unittest.TestCase):
         for txid in expectedTxids:
             self.assertNotIn(txid, mempool.txs.keys())
 
+    def test_build_block_template(self):
+        mempool = blockbuilder.Mempool()
+        mempool.fromDict(testDict)
+
+        builder = blockbuilder.Blockbuilder(mempool)
+        # TODO: FAILS because ["nop", "qrs"] is picked before "tuv" which then causes a missing tx in the lookup.
+        selectedTxs = builder.buildBlockTemplate()
+        print(str(selectedTxs))
+
 
 if __name__ == '__main__':
     unittest.main()
