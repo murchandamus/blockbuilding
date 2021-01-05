@@ -4,7 +4,7 @@ from itertools import chain, combinations
 class Blockbuilder():
     def __init__(self, mempool):
         self.mempool = mempool
-        self.selectedTxs = []
+        self.selectedTxs = {}
         # 4M weight units minus header of 80 bytes
         self.availableWeight = 4_000_000-4*80
 
@@ -14,7 +14,7 @@ class Blockbuilder():
             if len(bestCandidateSet.txs) == 0:
                 break
             for tx in bestCandidateSet.txs.values():
-                self.selectedTxs.append(tx)
+                self.selectedTxs[tx.txid] = tx
         self.availableWeight -= bestCandidateSet.getWeight()
         return self.selectedTxs
 
@@ -23,12 +23,15 @@ class Blockbuilder():
         if blockId != "":
             filePath += blockId
         else:
-            date_now = datetime.now()
+            date_now = datetime.datetime.now()
             filePath += date_now.isoformat()
 
-        filePath += + ".clustered"
+        filePath += '.byclusters'
         with open(filePath, 'w') as output_file:
-            for tx in self.selectedTxs:
+            selected = CandidateSet(self.selectedTxs)
+            output_file.write('CreateNewBlockByClusters(): fees ' + str(selected.getFees()) + ' weight ' + str(selected.getWeight()) + '\n')
+
+            for tx in self.selectedTxs.values():
                 output_file.write(tx.txid + '\n')
         output_file.close()
 
