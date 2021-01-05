@@ -145,6 +145,9 @@ class TestBlockbuilder(unittest.TestCase):
         selectedTxs = builder.buildBlockTemplate()
         print(str(selectedTxs))
 
+    def test_output_block_template(self):
+        print("not tested yet")
+
 
 if __name__ == '__main__':
     unittest.main()
