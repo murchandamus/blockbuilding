@@ -1,4 +1,5 @@
 import json
+import math
 import datetime
 from itertools import chain, combinations
 
@@ -181,7 +182,7 @@ class Mempool():
             for txid in txsJSON.keys():
                 self.txs[txid] = Transaction(
                     txid,
-                    txsJSON[txid]["fees"]["base"],
+                    txsJSON[txid]["fee"] * math.pow(10,8),
                     txsJSON[txid]["weight"],
                     txsJSON[txid]["depends"],
                     txsJSON[txid]["spentby"]
