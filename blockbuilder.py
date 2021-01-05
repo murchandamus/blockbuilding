@@ -18,6 +18,20 @@ class Blockbuilder():
         self.availableWeight -= bestCandidateSet.getWeight()
         return self.selectedTxs
 
+    def outputBlockTemplate(self, blockId=""):
+        filePath = "results/"
+        if blockId != "":
+            filePath += blockId
+        else:
+            date_now = datetime.now()
+            filePath += date_now.isoformat()
+
+        filePath += + ".clustered"
+        with open(filePath, 'w') as output_file:
+            for tx in self.selectedTxs:
+                output_file.write(tx.txid + '\n')
+        output_file.close()
+
 
 class Transaction():
     def __init__(self, txid, fee, weight, parents=[], descendants=[]):
@@ -175,6 +189,7 @@ class Mempool():
                 if clusterBest.getEffectiveFeerate() > bestCandidateSet.getEffectiveFeerate():
                     bestCandidateSet = clusterBest
         for txid in bestCandidateSet.txs.keys():
+            # TODO: Remove links to the transaction first
             self.txs.pop(txid)
         return bestCandidateSet
 
