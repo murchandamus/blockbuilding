@@ -1,4 +1,5 @@
 import json
+import datetime
 from itertools import chain, combinations
 
 class Blockbuilder():
@@ -108,7 +109,12 @@ class Cluster():
         if weightLimit > 0:
             self.candidates = list(filter(lambda d: d.getWeight() <= weightLimit, self.candidates))
 
+        # TODO: will throw on empty
         return self.candidates[-1]
+
+    def removeCandidateSetLinks(self, candidateSet):
+        for tx in self.txs.values():
+            tx.parents = [t for t in tx.parents if t not in candidateSet.txs.keys()]
 
 
 # The Mempool class represents a transient state of what is available to be used in a blocktemplate
@@ -184,16 +190,24 @@ class Mempool():
         self.cluster()
         # Initialize with all transactions from the first cluster
         bestCandidateSet = CandidateSet(list(self.clusters.values())[0].txs)
+        bestCluster = list(self.clusters.values())[0]
         for c in self.clusters.values():
             clusterBest = c.getBestCandidateSet(weightLimit)
             if not bestCandidateSet:
                 bestCandidateSet = clusterBest
+                bestCluster = c
             else:
                 if clusterBest.getEffectiveFeerate() > bestCandidateSet.getEffectiveFeerate():
                     bestCandidateSet = clusterBest
+                    bestCluster = c
+
+        bestCluster.removeCandidateSetLinks(bestCandidateSet)
         for txid in bestCandidateSet.txs.keys():
-            # TODO: Remove links to the transaction first
             self.txs.pop(txid)
+
+        # delete modified cluster for recreation next round
+        self.clusters.pop(bestCluster.representative)
+
         return bestCandidateSet
 
 
