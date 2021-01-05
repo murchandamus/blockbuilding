@@ -7,16 +7,16 @@ class Blockbuilder():
         self.mempool = mempool
         self.selectedTxs = {}
         # 4M weight units minus header of 80 bytes
-        self.availableWeight = 4_000_000-4*80
+        self.availableWeight = 4000000-4*80
 
     def buildBlockTemplate(self):
         while len(self.mempool.txs) > 0 and self.availableWeight > 0:
             bestCandidateSet = self.mempool.popBestCandidateSet(self.availableWeight)
-            if len(bestCandidateSet.txs) == 0:
+            if bestCandidateSet is None or len(bestCandidateSet.txs) == 0:
                 break
             for tx in bestCandidateSet.txs.values():
                 self.selectedTxs[tx.txid] = tx
-        self.availableWeight -= bestCandidateSet.getWeight()
+            self.availableWeight -= bestCandidateSet.getWeight()
         return self.selectedTxs
 
     def outputBlockTemplate(self, blockId=""):
@@ -67,6 +67,12 @@ class CandidateSet():
         for txid, tx in txs.items():
             self.txs[txid] = tx
 
+    def __eq__(self, other):
+        """Overrides the default implementation"""
+        if isinstance(other, CandidateSet):
+            return self.txs == other.txs
+        return NotImplemented
+
     def getWeight(self):
         return sum(tx.weight for tx in self.txs.values())
 
@@ -110,6 +116,8 @@ class Cluster():
             self.candidates = list(filter(lambda d: d.getWeight() <= weightLimit, self.candidates))
 
         # TODO: will throw on empty
+        if len(self.candidates) == 0:
+            raise Exception('empty candidate set')
         return self.candidates[-1]
 
     def removeCandidateSetLinks(self, candidateSet):
@@ -189,14 +197,16 @@ class Mempool():
     def popBestCandidateSet(self, weightLimit=40000000):
         self.cluster()
         # Initialize with all transactions from the first cluster
-        bestCandidateSet = CandidateSet(list(self.clusters.values())[0].txs)
-        bestCluster = list(self.clusters.values())[0]
+        bestCandidateSet = None
+        bestCluster = None
         for c in self.clusters.values():
             clusterBest = c.getBestCandidateSet(weightLimit)
-            if not bestCandidateSet:
+            if bestCandidateSet is None:
                 bestCandidateSet = clusterBest
                 bestCluster = c
             else:
+                if clusterBest is None:
+                    raise Exception('clusterBest should be defined')
                 if clusterBest.getEffectiveFeerate() > bestCandidateSet.getEffectiveFeerate():
                     bestCandidateSet = clusterBest
                     bestCluster = c

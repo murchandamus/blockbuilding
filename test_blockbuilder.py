@@ -18,6 +18,16 @@ class TestBlockbuilder(unittest.TestCase):
     def test_missing_ancestor_candidate_set(self):
         self.assertRaises(TypeError, blockbuilder.CandidateSet, {"abc": self.testDict["abc"]})
 
+    def test_candidate_set_equivalence(self):
+        cs = blockbuilder.CandidateSet({"123": self.testDict["123"]})
+        otherCs = blockbuilder.CandidateSet({"123": self.testDict["123"]})
+        self.assertTrue(cs == otherCs)
+
+    def test_fail_candidate_set_equivalence(self):
+        cs = blockbuilder.CandidateSet({"nop": self.testDict["nop"]})
+        otherCs = blockbuilder.CandidateSet({"123": self.testDict["123"]})
+        self.assertFalse(cs == otherCs)
+
     def test_candidate_set_get_weight(self):
         cand = blockbuilder.CandidateSet({"123": self.testDict["123"], "abc": self.testDict["abc"]})
         self.assertEqual(cand.getWeight(), 200)
@@ -145,6 +155,11 @@ class TestBlockbuilder(unittest.TestCase):
     def test_output_block_template(self):
         print("not tested yet")
 
+    def test_build_block_template_empty_mempool(self):
+        mempool = blockbuilder.Mempool()
+        mempool.fromDict({})
+        builder = blockbuilder.Blockbuilder(mempool)
+        selectedTxs = builder.buildBlockTemplate()
 
 if __name__ == '__main__':
     unittest.main()
