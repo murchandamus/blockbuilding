@@ -82,6 +82,13 @@ class CandidateSet():
     def getEffectiveFeerate(self):
         return self.getFees()/self.getWeight()
 
+    def getDirectDescendants(self):
+        allDirectDescendants = []
+        for tx in self.txs.values():
+            for d in tx.descendants:
+                allDirectDescendants.append(d)
+        return allDirectDescendants
+
 
 # Maximal connected sets of transactions
 class Cluster():
@@ -97,17 +104,47 @@ class Cluster():
     def __str__(self):
         return "{" + self.representative + ": " + str(self.txs.keys()) + "}"
 
+    def expandCandidateSet(self, candidateSet):
+        allDirectDescendants = candidateSet.getDirectDescendants()
+        expandedCandidateSets = []
+        for d in allDirectDescendants:
+            # expand candidate set by each descendant
+            descendant = self.txs[d]
+            addedTxs = {descendant.txid: descendant}
+            # collect all necessary ancestors
+            incompleteAncestry = descendant.parents
+            while len(incompleteAncestry) > 0:
+                parentTxid = incompleteAncestry.pop()
+                if parentTxid not in candidateSet.txs.keys():
+                    parent = self.txs[parentTxid]
+                    addedTxs[parent.txid] = parent
+                    incompleteAncestry += parent.parents
+            addedTxs.update(candidateSet.txs)
+            descendantCS = CandidateSet(addedTxs)
+            expandedCandidateSets.append(descendantCS)
+        return expandedCandidateSets
+
     def generateAllCandidateSets(self):
-        s = self.txs.values()
-        sets = chain.from_iterable(combinations(s, r) for r in range(len(s)+1))
-        for candSet in sets:
-            try:
-                tDict = {}
-                for t in candSet:
-                    tDict[t.txid] = t
-                self.candidates.append(CandidateSet(tDict))
-            except TypeError:
+        self.candidates = []
+        expandedCandidateSets = []
+        searchList = []
+        ancestorlessTxs = [tx for tx in self.txs.values() if len(tx.parents) == 0]
+        for tx in ancestorlessTxs:
+            seedCandidateSet = CandidateSet({tx.txid: tx})
+            self.candidates.append(seedCandidateSet)
+            searchList.append(seedCandidateSet)
+
+        while len(searchList) > 0:
+            nextCS = searchList.pop()
+            if any(nextCS == x for x in expandedCandidateSets):
+                print('already expanded: ' + str(list(nextCS.txs.keys())))
                 pass
+            else:
+                print('expanding: ' + str(list(nextCS.txs.keys())))
+                self.candidates.append(nextCS)
+                searchList = searchList + self.expandCandidateSet(nextCS)
+                expandedCandidateSets.append(nextCS)
+
 
     def getBestCandidateSet(self, weightLimit=0):
         self.generateAllCandidateSets()
