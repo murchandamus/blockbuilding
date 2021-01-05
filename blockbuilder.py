@@ -50,9 +50,7 @@ class Transaction():
         return list(set([self.txid] + self.descendants + self.parents))
 
     def __str__(self):
-        return "{txid: " + self.txid
-        + ", descendants: " + str(self.descendants)
-        + ", parents: " + str(self.parents) + "}"
+        return "{txid: " + self.txid + ", descendants: " + str(self.descendants) + ", parents: " + str(self.parents) + ", fee: " + str(self.fee) + ", weight: " + str(self.weight) + "}"
 
 
 # A set of transactions that forms a unit and may be added to a block as is
@@ -131,20 +129,23 @@ class Cluster():
         searchList = []
         ancestorlessTxs = [tx for tx in self.txs.values() if len(tx.parents) == 0]
         for tx in ancestorlessTxs:
-            seedCandidateSet = CandidateSet({tx.txid: tx})
-            self.candidates.append(seedCandidateSet)
-            searchList.append(seedCandidateSet)
+            searchList.append(CandidateSet({tx.txid: tx}))
 
         while len(searchList) > 0:
             nextCS = searchList.pop()
             if any(nextCS == x for x in expandedCandidateSets):
-                print('already expanded: ' + str(list(nextCS.txs.keys())))
                 pass
             else:
                 print('expanding: ' + str(list(nextCS.txs.keys())))
                 self.candidates.append(nextCS)
-                searchList = searchList + self.expandCandidateSet(nextCS)
                 expandedCandidateSets.append(nextCS)
+                searchCandidates = self.expandCandidateSet(nextCS)
+                for sc in searchCandidates:
+                    if any(sc == x for x in expandedCandidateSets):
+                        pass
+                        print('already expanded: ' + str(list(nextCS.txs.keys())))
+                    else:
+                        searchList.append(sc)
 
 
     def getBestCandidateSet(self, weightLimit=0):
