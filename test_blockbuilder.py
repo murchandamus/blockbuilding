@@ -1,41 +1,39 @@
 import unittest
 import blockbuilder
 
-testDict = {
-    "123": blockbuilder.Transaction("123", 100, 100, [], ["abc"]),
-    "abc": blockbuilder.Transaction("abc", 100, 100, ["123"], []),
-    "nop": blockbuilder.Transaction("nop", 1000, 100, [], ["qrs"]),  # medium feerate
-    "qrs": blockbuilder.Transaction("qrs", 10000, 100, ["nop"], ["tuv"]),  # high feerate
-    "tuv": blockbuilder.Transaction("tuv", 100, 100, ["qrs"], []),  # low feerate
-    "xyz": blockbuilder.Transaction("xyz", 1, 1, [], [])
-}
-
-
 class TestBlockbuilder(unittest.TestCase):
-    print("Test from JSON")
+    def setUp(self):
+        self.testDict = {
+            "123": blockbuilder.Transaction("123", 100, 100, [], ["abc"]),
+            "abc": blockbuilder.Transaction("abc", 100, 100, ["123"], []),
+            "nop": blockbuilder.Transaction("nop", 1000, 100, [], ["qrs"]),  # medium feerate
+            "qrs": blockbuilder.Transaction("qrs", 10000, 100, ["nop"], ["tuv"]),  # high feerate
+            "tuv": blockbuilder.Transaction("tuv", 100, 100, ["qrs"], []),  # low feerate
+            "xyz": blockbuilder.Transaction("xyz", 1, 1, [], [])
+        }
 
     def test_valid_candidate_set(self):
-        blockbuilder.CandidateSet({"123": testDict["123"], "abc": testDict["abc"]})
+        blockbuilder.CandidateSet({"123": self.testDict["123"], "abc": self.testDict["abc"]})
 
     def test_missing_ancestor_candidate_set(self):
-        self.assertRaises(TypeError, blockbuilder.CandidateSet, {"abc": testDict["abc"]})
+        self.assertRaises(TypeError, blockbuilder.CandidateSet, {"abc": self.testDict["abc"]})
 
     def test_candidate_set_get_weight(self):
-        cand = blockbuilder.CandidateSet({"123": testDict["123"], "abc": testDict["abc"]})
+        cand = blockbuilder.CandidateSet({"123": self.testDict["123"], "abc": self.testDict["abc"]})
         self.assertEqual(cand.getWeight(), 200)
 
     def test_candidate_set_get_fees(self):
-        cand = blockbuilder.CandidateSet({"123": testDict["123"], "abc": testDict["abc"]})
+        cand = blockbuilder.CandidateSet({"123": self.testDict["123"], "abc": self.testDict["abc"]})
         self.assertEqual(cand.getFees(), 200)
 
     def test_candidate_set_get_effective_feerate(self):
-        cand = blockbuilder.CandidateSet({"123": testDict["123"], "abc": testDict["abc"]})
+        cand = blockbuilder.CandidateSet({"123": self.testDict["123"], "abc": self.testDict["abc"]})
         self.assertEqual(cand.getEffectiveFeerate(), 1)
 
     def build_nop_cluster(self):
-        cluster = blockbuilder.Cluster(testDict["nop"])
-        cluster.addTx(testDict["qrs"])
-        cluster.addTx(testDict["tuv"])
+        cluster = blockbuilder.Cluster(self.testDict["nop"])
+        cluster.addTx(self.testDict["qrs"])
+        cluster.addTx(self.testDict["tuv"])
 
         return cluster
 
@@ -101,7 +99,7 @@ class TestBlockbuilder(unittest.TestCase):
     def test_get_local_cluster_txids(self):
         print("localcluster")
         self.assertEqual(
-                sorted(testDict["abc"].getLocalClusterTxids()),
+                sorted(self.testDict["abc"].getLocalClusterTxids()),
                 ["123", "abc"],
                 "Should be ['123','abc']"
             )
@@ -109,7 +107,7 @@ class TestBlockbuilder(unittest.TestCase):
     def test_mempool_cluster(self):
         print("Start mempool.cluster")
         mempool = blockbuilder.Mempool()
-        mempool.fromDict(testDict)
+        mempool.fromDict(self.testDict)
         clusters = mempool.cluster()
         self.assertEqual(
                 list(clusters["123"].txs.keys()),
@@ -126,7 +124,7 @@ class TestBlockbuilder(unittest.TestCase):
 
     def test_pop_best_candidate_set(self):
         mempool = blockbuilder.Mempool()
-        mempool.fromDict(testDict)
+        mempool.fromDict(self.testDict)
 
         bestCandidateSet = mempool.popBestCandidateSet()
         expectedTxids = ["nop", "qrs"]
@@ -138,10 +136,9 @@ class TestBlockbuilder(unittest.TestCase):
 
     def test_build_block_template(self):
         mempool = blockbuilder.Mempool()
-        mempool.fromDict(testDict)
+        mempool.fromDict(self.testDict)
 
         builder = blockbuilder.Blockbuilder(mempool)
-        # TODO: FAILS because ["nop", "qrs"] is picked before "tuv" which then causes a missing tx in the lookup.
         selectedTxs = builder.buildBlockTemplate()
         print(str(selectedTxs))
 
