@@ -196,13 +196,13 @@ class Mempool():
                 line = line.rstrip('\n')
                 elements = line.split(SplitBy)
                 txid = elements[0]
-                # parents are not stored in this file type
+                # descendants are not stored in this file type
                 self.txs[txid] = Transaction(txid, int(elements[1]), int(elements[2]), [], elements[3:])
         import_file.close()
-        # backfill parents from descendants
+        # backfill descendants from parents
         for tx in self.txs.values():
-            for d in tx.descendants:
-                self.txs[d].parents.append(tx.txid)
+            for p in tx.parents:
+                self.txs[p].descendants.append(tx.txid)
 
     def getTx(self, txid):
         return self.txs[txid]
