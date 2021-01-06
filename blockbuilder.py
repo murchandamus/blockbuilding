@@ -89,6 +89,9 @@ class CandidateSet():
                     allDirectDescendants.append(d)
         return allDirectDescendants
 
+    def __str__(self):
+        return "{" + str(list(self.txs.keys())) + "feerate: " + str(self.getEffectiveFeerate()) + "}"
+
 
 # Maximal connected sets of transactions
 class Cluster():
@@ -102,7 +105,7 @@ class Cluster():
         self.representative = min(tx.txid, self.representative)
 
     def __str__(self):
-        return "{" + self.representative + ": " + str(self.txs.keys()) + "feerate: " + str(self.getEffectiveFeerate()) + "}"
+        return "{" + self.representative + ": " + str(self.txs.keys()) + "}"
 
     def expandCandidateSet(self, candidateSet):
         allDirectDescendants = candidateSet.getDirectDescendants()
@@ -231,6 +234,7 @@ class Mempool():
             for lct in localCluster.txs.keys():
                 self.txClusterMap[lct] = localCluster.representative
 
+        print('finished cluster building')
         return self.clusters
 
     def popBestCandidateSet(self, weightLimit=40000000):
@@ -247,9 +251,12 @@ class Mempool():
                 if clusterBest is None:
                     raise Exception('clusterBest should be defined')
                 if clusterBest.getEffectiveFeerate() > bestCandidateSet.getEffectiveFeerate():
+                    print ("found better cluster")
                     bestCandidateSet = clusterBest
+                    print (str(bestCandidateSet))
                     bestCluster = c
 
+        print('traversed all clusters in popBest')
         bestCluster.removeCandidateSetLinks(bestCandidateSet)
         for txid in bestCandidateSet.txs.keys():
             self.txs.pop(txid)
@@ -257,6 +264,7 @@ class Mempool():
         # delete modified cluster for recreation next round
         self.clusters.pop(bestCluster.representative)
 
+        print(str(bestCandidateSet))
         return bestCandidateSet
 
 
