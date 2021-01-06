@@ -85,7 +85,8 @@ class CandidateSet():
         allDirectDescendants = []
         for tx in self.txs.values():
             for d in tx.descendants:
-                allDirectDescendants.append(d)
+                if d not in self.txs.keys():
+                    allDirectDescendants.append(d)
         return allDirectDescendants
 
 
@@ -101,7 +102,7 @@ class Cluster():
         self.representative = min(tx.txid, self.representative)
 
     def __str__(self):
-        return "{" + self.representative + ": " + str(self.txs.keys()) + "}"
+        return "{" + self.representative + ": " + str(self.txs.keys()) + "feerate: " + str(self.getEffectiveFeerate()) + "}"
 
     def expandCandidateSet(self, candidateSet):
         allDirectDescendants = candidateSet.getDirectDescendants()
@@ -146,7 +147,6 @@ class Cluster():
                         print('already expanded: ' + str(list(nextCS.txs.keys())))
                     else:
                         searchList.append(sc)
-
 
     def getBestCandidateSet(self, weightLimit=0):
         self.generateAllCandidateSets()
