@@ -60,11 +60,16 @@ class CandidateSet():
         if len(txs) < 1:
             raise TypeError("set cannot be empty")
         for txid, tx in txs.items():
-            for p in tx.parents:
-                if p not in txs.keys():
-                    raise TypeError("parent " + str(p) + " of " + txid + " is not in txs")
-        for txid, tx in txs.items():
-            self.txs[txid] = tx
+            if all(parent in txs.keys() for parent in tx.parents):
+                self.txs[txid] = tx
+            else:
+                raise TypeError("parent of " + txid + " is not in txs")
+
+    def __repr__(self):
+        return "CandidateSet(%s, %s)" % (str(list(self.txs.keys())), str(self.getEffectiveFeerate()))
+
+    def __hash__(self):
+        return hash(self.__repr__())
 
     def __eq__(self, other):
         """Overrides the default implementation"""
@@ -90,7 +95,7 @@ class CandidateSet():
         return allDirectDescendants
 
     def __str__(self):
-        return "{" + str(list(self.txs.keys())) + "feerate: " + str(self.getEffectiveFeerate()) + "}"
+        return "{feerate: " + str(self.getEffectiveFeerate()) + ", txs: "+ str(list(self.txs.keys())) + "}" 
 
 
 # Maximal connected sets of transactions
@@ -137,19 +142,18 @@ class Cluster():
 
         while len(searchList) > 0:
             nextCS = searchList.pop()
-            if any(nextCS == x for x in expandedCandidateSets):
+            if nextCS is None or len(nextCS.txs) == 0 or any(nextCS == x for x in expandedCandidateSets):
                 pass
             else:
-                print('expanding: ' + str(list(nextCS.txs.keys())))
                 self.candidates.append(nextCS)
                 expandedCandidateSets.append(nextCS)
                 searchCandidates = self.expandCandidateSet(nextCS)
                 for sc in searchCandidates:
                     if any(sc == x for x in expandedCandidateSets):
                         pass
-                        print('already expanded: ' + str(list(nextCS.txs.keys())))
                     else:
                         searchList.append(sc)
+        self.candidates = list(set(self.candidates))
 
     def getBestCandidateSet(self, weightLimit=0):
         self.generateAllCandidateSets()
@@ -264,7 +268,7 @@ class Mempool():
         # delete modified cluster for recreation next round
         self.clusters.pop(bestCluster.representative)
 
-        print(str(bestCandidateSet))
+        print(str(list(bestCandidateSet.txs.keys())))
         return bestCandidateSet
 
 
