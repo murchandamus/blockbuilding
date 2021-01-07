@@ -46,6 +46,9 @@ class Transaction():
         self.descendants = descendants
         self.parents = parents
 
+    def getEffectiveFeerate(self):
+        return self.fee/self.weight
+
     def getLocalClusterTxids(self):
         return list(set([self.txid] + self.descendants + self.parents))
 
@@ -115,9 +118,13 @@ class Cluster():
     def expandCandidateSet(self, candidateSet):
         allDirectDescendants = candidateSet.getDirectDescendants()
         expandedCandidateSets = []
+        currentFeerate = candidateSet.getEffectiveFeerate()
         for d in allDirectDescendants:
-            # expand candidate set by each descendant
+            # Skip descendants of lower feerate than candidate set without children
             descendant = self.txs[d]
+            descendantFeeRate = descendant.getEffectiveFeerate()
+            if len(descendant.descendants) == 0 and descendantFeeRate < currentFeerate:
+                continue
             addedTxs = {descendant.txid: descendant}
             # collect all necessary ancestors
             incompleteAncestry = descendant.parents
@@ -278,11 +285,9 @@ def getRepresentativeTxid(txids):
 
 
 if __name__ == '__main__':
-    # mempoolFileString = "data/mempool.json"
-    # mempoolFileString = "/home/murch/Workspace/blockbuilding/data/mini-mempool.json"
-    mempoolFileString = "data/mempoolTXT"
     mempool = Mempool()
-    mempool.fromTXT(mempoolFileString, " ")
-    # mempool.fromJSON(mempoolFileString)
-    clusters = mempool.cluster()
-    print(clusters)
+    mempoolFileString = "data/mempool.json"
+    mempool.fromJSON(mempoolFileString)
+    bb = Blockbuilder(mempool)
+    bb.buildBlockTemplate()
+    bb.outputBlockTemplate()
