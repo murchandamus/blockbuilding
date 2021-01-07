@@ -40,6 +40,12 @@ class TestBlockbuilder(unittest.TestCase):
         cand = blockbuilder.CandidateSet({"123": self.testDict["123"], "abc": self.testDict["abc"]})
         self.assertEqual(cand.getEffectiveFeerate(), 1)
 
+    def test_candidate_set_get_effective_feerate_can_be_float(self):
+        cand = blockbuilder.CandidateSet({"123": self.testDict["123"], "abc": self.testDict["abc"]})
+        cand.fees = 25 
+        cand.weight = 100
+        self.assertEqual(cand.getEffectiveFeerate(), 0.25)
+
     def build_nop_cluster(self):
         cluster = blockbuilder.Cluster(self.testDict["nop"])
         cluster.addTx(self.testDict["qrs"])
