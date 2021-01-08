@@ -145,24 +145,25 @@ class Cluster():
 
     def getBestCandidateSet(self, weightLimit=0):
         bestCand = None # current best candidateSet
-        self.candidates = [] # valid candidateSets
         expandedCandidateSets = [] # candidateSets that have been evaluated
         searchList = [] # candidates that still need to be evaluated
         ancestorlessTxs = [tx for tx in self.txs.values() if len(tx.parents) == 0]
         for tx in ancestorlessTxs:
             # print("ancestorlessTx: " + str(tx))
             cand = CandidateSet({tx.txid: tx})
-            if bestCand is None or bestCand.getEffectiveFeerate() < cand.getEffectiveFeerate():
-                bestCand = cand
-            searchList.append(cand)
+            if weightLimit == 0 or tx.weight <= weightLimit:
+                if bestCand is None or bestCand.getEffectiveFeerate() < cand.getEffectiveFeerate():
+                    bestCand = cand
+                searchList.append(cand)
 
         while len(searchList) > 0:
             searchList.sort(key=lambda x: x.getEffectiveFeerate())
             nextCS = searchList.pop()
             if nextCS is None or len(nextCS.txs) == 0 or any(nextCS == x for x in expandedCandidateSets):
                 pass
+            elif weightLimit > 0 and nextCS.getWeight() > weightLimit:
+                pass
             else:
-                self.candidates.append(nextCS)
                 expandedCandidateSets.append(nextCS)
                 if (nextCS.getEffectiveFeerate() > bestCand.getEffectiveFeerate()):
                     print("Better candidate found: " + str(nextCS))
@@ -173,16 +174,8 @@ class Cluster():
                         pass
                     else:
                         searchList.append(sc)
-        self.candidates = list(set(self.candidates))
 
-        self.candidates.sort(key=lambda cand: cand.getEffectiveFeerate())
-        if weightLimit > 0:
-            self.candidates = list(filter(lambda d: d.getWeight() <= weightLimit, self.candidates))
-
-        # TODO: will throw on empty
-        if len(self.candidates) == 0:
-            raise Exception('empty candidate set')
-        return self.candidates[-1]
+        return bestCand
 
     def removeCandidateSetLinks(self, candidateSet):
         for tx in self.txs.values():
