@@ -127,7 +127,6 @@ class Cluster():
             descendant = self.txs[d]
             descendantFeeRate = descendant.getEffectiveFeerate()
             if len(descendant.descendants) == 0 and descendantFeeRate < bestFeerate:
-                print("bestFeerate: " + str(bestFeerate) + ", skipping childless " + descendant.txid + " with feerate: " + str(descendantFeeRate))
                 continue
             addedTxs = {descendant.txid: descendant}
             # collect all necessary ancestors
@@ -165,7 +164,6 @@ class Cluster():
             else:
                 expandedCandidateSets.append(nextCS)
                 if (nextCS.getEffectiveFeerate() > bestCand.getEffectiveFeerate()):
-                    print("Better candidate found: " + str(nextCS))
                     bestCand = nextCS
                 searchCandidates = self.expandCandidateSet(nextCS, bestCand.getEffectiveFeerate())
                 for sc in searchCandidates:
@@ -261,16 +259,15 @@ class Mempool():
             print('getting best from cluster: ' + c.representative + ' with ' + str(len(c.txs.keys())) + ' txs')
             clusterBest = c.getBestCandidateSet(weightLimit)
             if bestCandidateSet is None:
-                print('First set found')
+                print("First candidate set in cluster found: " + str(bestCandidateSet))
                 bestCandidateSet = clusterBest
                 bestCluster = c
             else:
                 if clusterBest is None:
                     raise Exception('clusterBest should be defined')
                 if clusterBest.getEffectiveFeerate() > bestCandidateSet.getEffectiveFeerate():
-                    print ("found better candidate set in cluster")
                     bestCandidateSet = clusterBest
-                    print (str(bestCandidateSet))
+                    print("Found better candidate set in cluster" + str(bestCandidateSet))
                     bestCluster = c
 
         print('traversed all clusters in popBest')
@@ -282,7 +279,7 @@ class Mempool():
         # delete modified cluster for recreation next round
         self.clusters.pop(bestCluster.representative)
 
-        print(str(bestCandidateSet))
+        print("best candidate from all clusters: " + str(bestCandidateSet))
         return bestCandidateSet
 
 

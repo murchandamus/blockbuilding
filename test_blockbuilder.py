@@ -42,7 +42,8 @@ class TestBlockbuilder(unittest.TestCase):
 
     def test_candidate_set_get_effective_feerate_can_be_float(self):
         cand = blockbuilder.CandidateSet({"123": self.testDict["123"], "abc": self.testDict["abc"]})
-        self.testDict['123'].fee = 25 
+        self.testDict['123'].fee = 25
+        print('cand for feeRate: '  +  str(cand))
         self.assertEqual(cand.getEffectiveFeerate(), 0.625)
 
     def build_nop_cluster(self):
