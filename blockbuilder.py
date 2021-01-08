@@ -176,6 +176,7 @@ class Cluster():
     def removeCandidateSetLinks(self, candidateSet):
         for tx in self.txs.values():
             tx.parents = [t for t in tx.parents if t not in candidateSet.txs.keys()]
+            tx.descendants = [t for t in tx.descendants if t not in candidateSet.txs.keys()]
 
 
 # The Mempool class represents a transient state of what is available to be used in a blocktemplate

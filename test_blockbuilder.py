@@ -69,6 +69,13 @@ class TestBlockbuilder(unittest.TestCase):
         best = cluster.getBestCandidateSet()
         self.assertEqual(sorted(list(best.txs.keys())), ["nop", "qrs"])
 
+    def test_remove_candidate_set_links(self):
+        cluster = self.build_nop_cluster()
+        best = cluster.getBestCandidateSet()
+        cluster.removeCandidateSetLinks(best)
+        for txid, tx in cluster.txs.items():
+            print(tx)
+
     def build_chain_test_cluster(self):
         mempool = blockbuilder.Mempool()
         mempool.fromTXT('data/chain-test-txt')
