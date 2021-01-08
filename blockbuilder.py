@@ -39,12 +39,16 @@ class Blockbuilder():
 
 
 class Transaction():
-    def __init__(self, txid, fee, weight, parents=[], descendants=[]):
+    def __init__(self, txid, fee, weight, parents=None, descendants=None):
         self.txid = txid
         self.fee = int(fee)
         self.weight = int(weight)
-        self.descendants = descendants
+        if parents is None:
+            parents = []
         self.parents = parents
+        if descendants is None:
+            descendants = []
+        self.descendants = descendants
 
     def getEffectiveFeerate(self):
         return self.fee/self.weight
@@ -214,7 +218,7 @@ class Mempool():
                 elements = line.split(SplitBy)
                 txid = elements[0]
                 # descendants are not stored in this file type
-                self.txs[txid] = Transaction(txid, int(elements[1]), int(elements[2]), [], elements[3:])
+                self.txs[txid] = Transaction(txid, int(elements[1]), int(elements[2]), elements[3:])
         import_file.close()
         # backfill descendants from parents
         for tx in self.txs.values():
