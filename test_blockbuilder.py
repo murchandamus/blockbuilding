@@ -52,17 +52,6 @@ class TestBlockbuilder(unittest.TestCase):
 
         return cluster
 
-    def test_get_all_candidate_sets(self):
-        cluster = self.build_nop_cluster()
-        cluster.generateAllCandidateSets()
-        expectedSets = [["nop"], ["nop", "qrs"], ["nop", "qrs", "tuv"]]
-
-        for cand in cluster.candidates:
-            print("print all candidates")
-            print(cand)
-            self.assertEqual(True, sorted(cand.txs.keys()) in expectedSets)
-            self.assertEqual(len(cluster.candidates), len(expectedSets))
-
     def test_get_best_candidate_set(self):
         cluster = self.build_nop_cluster()
         best = cluster.getBestCandidateSet()
@@ -82,17 +71,6 @@ class TestBlockbuilder(unittest.TestCase):
         cluster = list(mempool.clusters.values())[0]
         return cluster
 
-    def test_generate_all_candidates_from_chain(self):
-        cluster = self.build_chain_test_cluster()
-        cluster.generateAllCandidateSets()
-        print("print all candidates")
-        for cand in cluster.candidates:
-            print(cand)
-        print('first and last candidate:')
-        print(str(cluster.candidates[0]))
-        print(str(cluster.candidates[-1]))
-        self.assertEqual(len(cluster.candidates), 25)
-
     def test_get_best_candidate_set_from_chain(self):
         cluster = self.build_chain_test_cluster()
         best = cluster.getBestCandidateSet()
@@ -104,7 +82,7 @@ class TestBlockbuilder(unittest.TestCase):
         mempool.cluster()
         cluster = list(mempool.clusters.values())[0]
         best = cluster.getBestCandidateSet()
-        self.assertEqual(sorted(list(best.txs.keys())), ["nop", "qrs"])
+        self.assertEqual(sorted(list(best.txs.keys())), ['06447a0e3dc38315188fc177907aa44417dfdd3e9ff41c5c50dc4447348852fa', '52613203575dc68fe20557c74776e909caede0c64ec75e4cc418461b6fc63777', '550ee342c094d95e5f9df931bdc5d86ab5eb0b4abdc9cfd137ceacef605ad69f', '64975313b72229a42d8a46fd45c3c3934f40751abc01a7d7067d9f472bc64ff2', 'b5ba0f7d66b424dcadea561555e1dc4aa20e694271f8db1d046065c92a8861bd', 'bf4a1a9d9844398a96cb6b57f5d2d65bc97c1c2314141bf9db857afa77a38971', 'f4745ca47ce9c552db574e36744d7f3f3bf961fd03541c8ba4c31f1ee86e243c'])
 
     def test_get_best_candidate_set_with_limit(self):
         cluster = self.build_nop_cluster()

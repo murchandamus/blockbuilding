@@ -102,7 +102,7 @@ class CandidateSet():
         return allDirectDescendants
 
     def __str__(self):
-        return "{feerate: " + str(self.getEffectiveFeerate()) + ", txs: "+ str(list(self.txs.keys())) + "}" 
+        return "{feerate: " + str(self.getEffectiveFeerate()) + ", txs: "+ str(list(self.txs.keys())) + "}"
 
 
 # Maximal connected sets of transactions
@@ -119,15 +119,15 @@ class Cluster():
     def __str__(self):
         return "{" + self.representative + ": " + str(self.txs.keys()) + "}"
 
-    def expandCandidateSet(self, candidateSet):
+    def expandCandidateSet(self, candidateSet, bestFeerate):
         allDirectDescendants = candidateSet.getDirectDescendants()
         expandedCandidateSets = []
-        currentFeerate = candidateSet.getEffectiveFeerate()
         for d in allDirectDescendants:
             # Skip descendants of lower feerate than candidate set without children
             descendant = self.txs[d]
             descendantFeeRate = descendant.getEffectiveFeerate()
-            if len(descendant.descendants) == 0 and descendantFeeRate < currentFeerate:
+            if len(descendant.descendants) == 0 and descendantFeeRate < bestFeerate:
+                print("bestFeerate: " + str(bestFeerate) + ", skipping childless " + descendant.txid + " with feerate: " + str(descendantFeeRate))
                 continue
             addedTxs = {descendant.txid: descendant}
             # collect all necessary ancestors
@@ -143,22 +143,31 @@ class Cluster():
             expandedCandidateSets.append(descendantCS)
         return expandedCandidateSets
 
-    def generateAllCandidateSets(self):
-        self.candidates = []
-        expandedCandidateSets = []
-        searchList = []
+    def getBestCandidateSet(self, weightLimit=0):
+        bestCand = None # current best candidateSet
+        self.candidates = [] # valid candidateSets
+        expandedCandidateSets = [] # candidateSets that have been evaluated
+        searchList = [] # candidates that still need to be evaluated
         ancestorlessTxs = [tx for tx in self.txs.values() if len(tx.parents) == 0]
         for tx in ancestorlessTxs:
-            searchList.append(CandidateSet({tx.txid: tx}))
+            # print("ancestorlessTx: " + str(tx))
+            cand = CandidateSet({tx.txid: tx})
+            if bestCand is None or bestCand.getEffectiveFeerate() < cand.getEffectiveFeerate():
+                bestCand = cand
+            searchList.append(cand)
 
         while len(searchList) > 0:
+            searchList.sort(key=lambda x: x.getEffectiveFeerate())
             nextCS = searchList.pop()
             if nextCS is None or len(nextCS.txs) == 0 or any(nextCS == x for x in expandedCandidateSets):
                 pass
             else:
                 self.candidates.append(nextCS)
                 expandedCandidateSets.append(nextCS)
-                searchCandidates = self.expandCandidateSet(nextCS)
+                if (nextCS.getEffectiveFeerate() > bestCand.getEffectiveFeerate()):
+                    print("Better candidate found: " + str(nextCS))
+                    bestCand = nextCS
+                searchCandidates = self.expandCandidateSet(nextCS, bestCand.getEffectiveFeerate())
                 for sc in searchCandidates:
                     if any(sc == x for x in expandedCandidateSets):
                         pass
@@ -166,8 +175,6 @@ class Cluster():
                         searchList.append(sc)
         self.candidates = list(set(self.candidates))
 
-    def getBestCandidateSet(self, weightLimit=0):
-        self.generateAllCandidateSets()
         self.candidates.sort(key=lambda cand: cand.getEffectiveFeerate())
         if weightLimit > 0:
             self.candidates = list(filter(lambda d: d.getWeight() <= weightLimit, self.candidates))
