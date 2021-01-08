@@ -131,7 +131,7 @@ class Cluster():
                 continue
             addedTxs = {descendant.txid: descendant}
             # collect all necessary ancestors
-            incompleteAncestry = descendant.parents
+            incompleteAncestry = [] + descendant.parents
             while len(incompleteAncestry) > 0:
                 parentTxid = incompleteAncestry.pop()
                 if parentTxid not in candidateSet.txs.keys():
@@ -149,7 +149,6 @@ class Cluster():
         searchList = [] # candidates that still need to be evaluated
         ancestorlessTxs = [tx for tx in self.txs.values() if len(tx.parents) == 0]
         for tx in ancestorlessTxs:
-            # print("ancestorlessTx: " + str(tx))
             cand = CandidateSet({tx.txid: tx})
             if weightLimit == 0 or tx.weight <= weightLimit:
                 if bestCand is None or bestCand.getEffectiveFeerate() < cand.getEffectiveFeerate():
