@@ -255,15 +255,17 @@ class Mempool():
         bestCandidateSet = None
         bestCluster = None
         for c in self.clusters.values():
+            print('getting best from cluster: ' + c.representative + ' with ' + str(len(c.txs.keys())) + ' txs')
             clusterBest = c.getBestCandidateSet(weightLimit)
             if bestCandidateSet is None:
+                print('First set found')
                 bestCandidateSet = clusterBest
                 bestCluster = c
             else:
                 if clusterBest is None:
                     raise Exception('clusterBest should be defined')
                 if clusterBest.getEffectiveFeerate() > bestCandidateSet.getEffectiveFeerate():
-                    print ("found better cluster")
+                    print ("found better candidate set in cluster")
                     bestCandidateSet = clusterBest
                     print (str(bestCandidateSet))
                     bestCluster = c
@@ -271,12 +273,13 @@ class Mempool():
         print('traversed all clusters in popBest')
         bestCluster.removeCandidateSetLinks(bestCandidateSet)
         for txid in bestCandidateSet.txs.keys():
+            bestCluster.txs.pop(txid)
             self.txs.pop(txid)
 
         # delete modified cluster for recreation next round
         self.clusters.pop(bestCluster.representative)
 
-        print(str(list(bestCandidateSet.txs.keys())))
+        print(str(bestCandidateSet))
         return bestCandidateSet
 
 

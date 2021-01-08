@@ -42,9 +42,8 @@ class TestBlockbuilder(unittest.TestCase):
 
     def test_candidate_set_get_effective_feerate_can_be_float(self):
         cand = blockbuilder.CandidateSet({"123": self.testDict["123"], "abc": self.testDict["abc"]})
-        cand.fees = 25 
-        cand.weight = 100
-        self.assertEqual(cand.getEffectiveFeerate(), 0.25)
+        self.testDict['123'].fee = 25 
+        self.assertEqual(cand.getEffectiveFeerate(), 0.625)
 
     def build_nop_cluster(self):
         cluster = blockbuilder.Cluster(self.testDict["nop"])
@@ -86,6 +85,9 @@ class TestBlockbuilder(unittest.TestCase):
     def test_generate_all_candidates_from_chain(self):
         cluster = self.build_chain_test_cluster()
         cluster.generateAllCandidateSets()
+        print("print all candidates")
+        for cand in cluster.candidates:
+            print(cand)
         print('first and last candidate:')
         print(str(cluster.candidates[0]))
         print(str(cluster.candidates[-1]))
