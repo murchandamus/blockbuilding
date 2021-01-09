@@ -265,18 +265,21 @@ class Mempool():
 
         print('traversed all clusters in popBest')
 
-        # delink bestCandidateSet from remaining cluster
-        bestCluster.removeCandidateSetLinks(bestCandidateSet)
-        # remove cluster mapping for transactions in cluster
-        for txid in bestCluster.txs.keys():
-            self.txClusterMap.pop(txid)
-        # remove bestCandidateSet from mempool
-        for txid in bestCandidateSet.txs.keys():
-            self.txs.pop(txid)
-        # delete modified cluster for recreation next round
-        self.clusters.pop(bestCluster.representative)
-
         print("best candidate from all clusters: " + str(bestCandidateSet))
+        if bestCandidateSet is None:
+            print("Block finished")
+        else:
+            # delink bestCandidateSet from remaining cluster
+            bestCluster.removeCandidateSetLinks(bestCandidateSet)
+            # remove cluster mapping for transactions in cluster
+            for txid in bestCluster.txs.keys():
+                self.txClusterMap.pop(txid)
+            # remove bestCandidateSet from mempool
+            for txid in bestCandidateSet.txs.keys():
+                self.txs.pop(txid)
+            # delete modified cluster for recreation next round
+            self.clusters.pop(bestCluster.representative)
+
         return bestCandidateSet
 
 
