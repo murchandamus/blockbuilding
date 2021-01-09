@@ -11,7 +11,9 @@ class Blockbuilder():
         self.availableWeight = 4000000-4*80
 
     def buildBlockTemplate(self):
+        print("Building blocktemplate…")
         while len(self.mempool.txs) > 0 and self.availableWeight > 0:
+            print("Weight left: " + str(self.availableWeight))
             bestCandidateSet = self.mempool.popBestCandidateSet(self.availableWeight)
             if bestCandidateSet is None or len(bestCandidateSet.txs) == 0:
                 break
@@ -142,16 +144,17 @@ class Cluster():
             expandedCandidateSets.append(descendantCS)
         return expandedCandidateSets
 
-    def getBestCandidateSet(self, weightLimit=0):
-        if self.bestCandidate is not None and (weightLimit == 0 or self.bestCandidate.getWeight() <= weightLimit):
+    def getBestCandidateSet(self, weightLimit=-1):
+        if self.bestCandidate is not None and (weightLimit == -1 or self.bestCandidate.getWeight() <= weightLimit):
             return self.bestCandidate
+        print("Calculate bestCandidateSet for cluster of " + str(len(cluster.txs)) + ": " + str(self))
         bestCand = None # current best candidateSet
         expandedCandidateSets = [] # candidateSets that have been evaluated
         searchList = [] # candidates that still need to be evaluated
         ancestorlessTxs = [tx for tx in self.txs.values() if len(tx.parents) == 0]
         for tx in ancestorlessTxs:
             cand = CandidateSet({tx.txid: tx})
-            if weightLimit == 0 or tx.weight <= weightLimit:
+            if weightLimit == -1 or tx.weight <= weightLimit:
                 if bestCand is None or bestCand.getEffectiveFeerate() < cand.getEffectiveFeerate():
                     bestCand = cand
                 searchList.append(cand)
@@ -161,7 +164,7 @@ class Cluster():
             nextCS = searchList.pop()
             if nextCS is None or len(nextCS.txs) == 0 or any(nextCS == x for x in expandedCandidateSets):
                 pass
-            elif weightLimit > 0 and nextCS.getWeight() > weightLimit:
+            elif weightLimit > -1 and nextCS.getWeight() > weightLimit:
                 pass
             else:
                 expandedCandidateSets.append(nextCS)
@@ -169,7 +172,9 @@ class Cluster():
                     bestCand = nextCS
                 searchCandidates = self.expandCandidateSet(nextCS, bestCand.getEffectiveFeerate())
                 for sc in searchCandidates:
-                    if any(sc == x for x in expandedCandidateSets):
+                    if weightLimit > -1 and nextCS.getWeight() > weightLimit:
+                        pass
+                    elif any(sc == x for x in expandedCandidateSets):
                         pass
                     else:
                         searchList.append(sc)
@@ -210,6 +215,7 @@ class Mempool():
         import_file.close()
 
     def fromTXT(self, filePath, SplitBy=" "):
+        print("Loading mempool…")
         with open(filePath, 'r') as import_file:
             for line in import_file:
                 if 'txid' in line:
@@ -220,10 +226,13 @@ class Mempool():
                 # descendants are not stored in this file type
                 self.txs[txid] = Transaction(txid, int(elements[1]), int(elements[2]), elements[3:])
         import_file.close()
+        print("Mempool loaded")
         # backfill descendants from parents
+        print("Backfill descendants from parents…")
         for tx in self.txs.values():
             for p in tx.parents:
                 self.txs[p].descendants.append(tx.txid)
+        print("Descendants backfilled")
 
     def getTx(self, txid):
         return self.txs[txid]
@@ -235,6 +244,7 @@ class Mempool():
         for txid, tx in self.getTxs().items():
             if txid in self.txClusterMap.keys():
                 continue
+            print("Cluster tx: " + txid)
             localCluster = Cluster(tx)
             localClusterTxids = tx.getLocalClusterTxids()
             while len(localClusterTxids) > 0:
