@@ -258,17 +258,10 @@ class Mempool():
         bestCluster = None
         for c in self.clusters.values():
             clusterBest = c.getBestCandidateSet(weightLimit)
-            if bestCandidateSet is None:
+            if clusterBest is not None and (bestCandidateSet is None or clusterBest.getEffectiveFeerate() > bestCandidateSet.getEffectiveFeerate()):
                 bestCandidateSet = clusterBest
-                print("First candidate set in clusters found: " + str(bestCandidateSet))
+                print("Found better candidate set in cluster" + str(bestCandidateSet))
                 bestCluster = c
-            else:
-                if clusterBest is None:
-                    raise Exception('clusterBest should be defined')
-                if clusterBest.getEffectiveFeerate() > bestCandidateSet.getEffectiveFeerate():
-                    bestCandidateSet = clusterBest
-                    print("Found better candidate set in cluster" + str(bestCandidateSet))
-                    bestCluster = c
 
         print('traversed all clusters in popBest')
 
