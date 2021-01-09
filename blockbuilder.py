@@ -110,7 +110,7 @@ class Cluster():
     def __init__(self, tx):
         self.representative = tx.txid
         self.txs = {tx.txid: tx}
-        self.candidates = []
+        self.bestCandidate = None
 
     def addTx(self, tx):
         self.txs[tx.txid] = tx
@@ -143,6 +143,8 @@ class Cluster():
         return expandedCandidateSets
 
     def getBestCandidateSet(self, weightLimit=0):
+        if self.bestCandidate is not None and (weightLimit == 0 or self.bestCandidate.getWeight() <= weightLimit):
+            return self.bestCandidate
         bestCand = None # current best candidateSet
         expandedCandidateSets = [] # candidateSets that have been evaluated
         searchList = [] # candidates that still need to be evaluated
@@ -171,8 +173,9 @@ class Cluster():
                         pass
                     else:
                         searchList.append(sc)
+        self.bestCandidate = bestCand
 
-        return bestCand
+        return self.bestCandidate
 
     def removeCandidateSetLinks(self, candidateSet):
         for tx in self.txs.values():
@@ -229,8 +232,6 @@ class Mempool():
         return self.txs
 
     def cluster(self):
-        self.clusters = {}
-        self.txClusterMap = {}
         for txid, tx in self.getTxs().items():
             if txid in self.txClusterMap.keys():
                 continue
@@ -256,11 +257,10 @@ class Mempool():
         bestCandidateSet = None
         bestCluster = None
         for c in self.clusters.values():
-            print('getting best from cluster: ' + c.representative + ' with ' + str(len(c.txs.keys())) + ' txs')
             clusterBest = c.getBestCandidateSet(weightLimit)
             if bestCandidateSet is None:
-                print("First candidate set in cluster found: " + str(bestCandidateSet))
                 bestCandidateSet = clusterBest
+                print("First candidate set in clusters found: " + str(bestCandidateSet))
                 bestCluster = c
             else:
                 if clusterBest is None:
@@ -271,11 +271,15 @@ class Mempool():
                     bestCluster = c
 
         print('traversed all clusters in popBest')
-        bestCluster.removeCandidateSetLinks(bestCandidateSet)
-        for txid in bestCandidateSet.txs.keys():
-            bestCluster.txs.pop(txid)
-            self.txs.pop(txid)
 
+        # delink bestCandidateSet from remaining cluster
+        bestCluster.removeCandidateSetLinks(bestCandidateSet)
+        # remove cluster mapping for transactions in cluster
+        for txid in bestCluster.txs.keys():
+            self.txClusterMap.pop(txid)
+        # remove bestCandidateSet from mempool
+        for txid in bestCandidateSet.txs.keys():
+            self.txs.pop(txid)
         # delete modified cluster for recreation next round
         self.clusters.pop(bestCluster.representative)
 
