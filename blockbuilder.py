@@ -147,7 +147,7 @@ class Cluster():
     def getBestCandidateSet(self, weightLimit=-1):
         if self.bestCandidate is not None and (weightLimit == -1 or self.bestCandidate.getWeight() <= weightLimit):
             return self.bestCandidate
-        print("Calculate bestCandidateSet for cluster of " + str(len(cluster.txs)) + ": " + str(self))
+        print("Calculate bestCandidateSet for cluster of " + str(len(self.txs)) + ": " + str(self))
         bestCand = None # current best candidateSet
         expandedCandidateSets = [] # candidateSets that have been evaluated
         searchList = [] # candidates that still need to be evaluated
