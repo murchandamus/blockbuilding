@@ -128,7 +128,7 @@ class Cluster():
     def assembleAncestry(self, txid):
         # cache ancestry until cluster is used
         if self.ancestorSets is not None and txid in self.ancestorSets:
-            return ancestorSets[txid]
+            return self.ancestorSets[txid]
 
         # collect all ancestors of txid
         tx = self.txs[txid]
@@ -144,7 +144,7 @@ class Cluster():
         if self.ancestorSets is None:
             self.ancestorSets = {txid: ancestorSet}
         else:
-            self.ancestorSets[txid] = CandidateSet(ancestry)
+            self.ancestorSets[txid] = ancestorSet
         return self.ancestorSets[txid]
 
     def expandCandidateSet(self, candidateSet, bestFeerate):
@@ -156,17 +156,13 @@ class Cluster():
             descendantFeeRate = descendant.getEffectiveFeerate()
             if len(descendant.descendants) == 0 and descendantFeeRate < bestFeerate:
                 continue
-            addedTxs = {descendant.txid: descendant}
-            # collect all necessary ancestors
-            incompleteAncestry = [] + descendant.parents
-            while len(incompleteAncestry) > 0:
-                parentTxid = incompleteAncestry.pop()
-                if parentTxid not in candidateSet.txs.keys():
-                    parent = self.txs[parentTxid]
-                    addedTxs[parent.txid] = parent
-                    incompleteAncestry += parent.parents
-            addedTxs.update(candidateSet.txs)
-            descendantCS = CandidateSet(addedTxs)
+            # Ensure this is a new dictionary instead of modifying an existing
+            expandedSetTxs = {descendant.txid: descendant}
+            # Add ancestry
+            expandedSetTxs.update(self.assembleAncestry(descendant.txid).txs)
+            # Add previous CandidateSet
+            expandedSetTxs.update(candidateSet.txs)
+            descendantCS = CandidateSet(expandedSetTxs)
             expandedCandidateSets.append(descendantCS)
         return expandedCandidateSets
 
