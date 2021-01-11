@@ -128,11 +128,13 @@ class Cluster():
             print('Cluster ' + str(self) + 'has no CandidateSet')
         myCandidate = self.getBestCandidateSet()
         if myCandidate is None:
-            return false
+            return False
         myWeight = myCandidate.getWeight()
         myFeeRate = myCandidate.getEffectiveFeerate()
 
         otherCandidate = other.getBestCandidateSet()
+        if otherCandidate is None:
+            return True
         otherWeight = otherCandidate.getWeight()
         otherFeeRate = otherCandidate.getEffectiveFeerate()
         return myFeeRate > otherFeeRate or (myFeeRate == otherFeeRate and myWeight > otherWeight)
@@ -309,7 +311,8 @@ class Mempool():
         self.txsToBeClustered = {}
         return self.clusters
 
-    def popBestCandidateSet(self, weightLimit=40000000):
+    def popBestCandidateSet(self, weightLimit=4000000):
+        print("Called popBestCandidateSet with weightLimit " + str(weightLimit))
         self.cluster(weightLimit)
         bestCluster = heapq.heappop(self.clusterHeap)
         bestCandidateSet = bestCluster.bestCandidate
