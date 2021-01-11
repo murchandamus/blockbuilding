@@ -215,12 +215,14 @@ class Cluster():
 class Mempool():
     def __init__(self):
         self.txs = {}
+        self.txsToBeClustered = {} # Bucket for transactions from used cluster
         self.clusters = {}  # Maps representative txid to cluster
         self.txClusterMap = {}  # Maps txid to its cluster
 
     def fromDict(self, txDict):
         for txid, tx in txDict.items():
             self.txs[txid] = tx
+            self.txsToBeClustered[txid] = tx
 
     def fromJSON(self, filePath):
         txsJSON = {}
@@ -228,13 +230,15 @@ class Mempool():
             txsJSON = json.load(import_file)
 
             for txid in txsJSON.keys():
-                self.txs[txid] = Transaction(
+                tx = Transaction(
                     txid,
                     txsJSON[txid]["fee"] * math.pow(10,8),
                     txsJSON[txid]["weight"],
                     txsJSON[txid]["depends"],
                     txsJSON[txid]["spentby"]
                 )
+                self.txs[txid] = tx
+                self.txsToBeClustered[txid] = tx
         import_file.close()
 
     def fromTXT(self, filePath, SplitBy=" "):
@@ -247,7 +251,9 @@ class Mempool():
                 elements = line.split(SplitBy)
                 txid = elements[0]
                 # descendants are not stored in this file type
-                self.txs[txid] = Transaction(txid, int(elements[1]), int(elements[2]), elements[3:])
+                tx = Transaction(txid, int(elements[1]), int(elements[2]), elements[3:])
+                self.txs[txid] = tx
+                self.txsToBeClustered[txid] = tx
         import_file.close()
         print("Mempool loaded")
         # backfill descendants from parents
@@ -263,8 +269,8 @@ class Mempool():
     def getTxs(self):
         return self.txs
 
-    def cluster(self):
-        for txid, tx in self.getTxs().items():
+    def cluster(self, weightLimit=4000000):
+        for txid, tx in self.txsToBeClustered.items():
             if txid in self.txClusterMap.keys():
                 continue
             print("Cluster tx: " + txid)
@@ -282,11 +288,11 @@ class Mempool():
                 self.txClusterMap[lct] = localCluster.representative
 
         print('finished cluster building')
+        self.txsToBeClustered = {}
         return self.clusters
 
     def popBestCandidateSet(self, weightLimit=40000000):
-        self.cluster()
-        # Initialize with all transactions from the first cluster
+        self.cluster(weightLimit)
         bestCandidateSet = None
         bestCluster = None
         for c in self.clusters.values():
@@ -305,11 +311,15 @@ class Mempool():
             # delink bestCandidateSet from remaining cluster
             bestCluster.removeCandidateSetLinks(bestCandidateSet)
             # remove cluster mapping for transactions in cluster
-            for txid in bestCluster.txs.keys():
+            for txid, tx in bestCluster.txs.items():
                 self.txClusterMap.pop(txid)
-            # remove bestCandidateSet from mempool
-            for txid in bestCandidateSet.txs.keys():
-                self.txs.pop(txid)
+                if txid in bestCandidateSet.txs.keys():
+                    # remove bestCandidateSet from mempool
+                    self.txs.pop(txid)
+                else:
+                    # stage other txs for clustering in mempool
+                    self.txsToBeClustered[txid] = tx
+
             # delete modified cluster for recreation next round
             self.clusters.pop(bestCluster.representative)
 
