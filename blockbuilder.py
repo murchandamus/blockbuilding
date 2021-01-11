@@ -3,6 +3,7 @@ import datetime
 import heapq
 import json
 import math
+import time 
 
 class Blockbuilder():
     def __init__(self, mempool):
@@ -351,9 +352,14 @@ def getRepresentativeTxid(txids):
 
 
 if __name__ == '__main__':
+    startTime = time.time()
     mempool = Mempool()
     mempoolFileString = "data/mempool.json"
     mempool.fromJSON(mempoolFileString)
+    # mempoolFileString = "data/data example/000000000000000000269e0949579bd98366bef1ca308d134182dbf28dc6fdef.mempool"
+    # mempool.fromTXT(mempoolFileString)
     bb = Blockbuilder(mempool)
     bb.buildBlockTemplate()
     bb.outputBlockTemplate()
+    endTime = time.time()
+    print('Elapsed time: ' + str(end - start))
