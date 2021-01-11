@@ -3,7 +3,7 @@ import datetime
 import heapq
 import json
 import math
-import time 
+import time
 
 class Blockbuilder():
     def __init__(self, mempool):
@@ -314,7 +314,9 @@ class Mempool():
     def popBestCandidateSet(self, weightLimit=4000000):
         print("Called popBestCandidateSet with weightLimit " + str(weightLimit))
         self.cluster(weightLimit)
+        bestCluster = None
         bestCluster = heapq.heappop(self.clusterHeap)
+        bestCandidateSet = None
         bestCandidateSet = bestCluster.bestCandidate
         if bestCandidateSet is None:
             raise Exception("Best candidate set was None unexpectedly in cluster: " + str(bestCluster))
@@ -357,12 +359,12 @@ def getRepresentativeTxid(txids):
 if __name__ == '__main__':
     startTime = time.time()
     mempool = Mempool()
-    mempoolFileString = "data/mempool.json"
-    mempool.fromJSON(mempoolFileString)
-    # mempoolFileString = "data/data example/000000000000000000269e0949579bd98366bef1ca308d134182dbf28dc6fdef.mempool"
-    # mempool.fromTXT(mempoolFileString)
+    # mempoolFileString = "data/mempool.json"
+    # mempool.fromJSON(mempoolFileString)
+    mempoolFileString = "data/data example/000000000000000000269e0949579bd98366bef1ca308d134182dbf28dc6fdef.mempool"
+    mempool.fromTXT(mempoolFileString)
     bb = Blockbuilder(mempool)
     bb.buildBlockTemplate()
     bb.outputBlockTemplate()
     endTime = time.time()
-    print('Elapsed time: ' + str(end - start))
+    print('Elapsed time: ' + str(endTime - startTime))

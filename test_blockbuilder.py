@@ -9,7 +9,7 @@ class TestBlockbuilder(unittest.TestCase):
             "nop": blockbuilder.Transaction("nop", 1000, 100, [], ["qrs"]),  # medium feerate
             "qrs": blockbuilder.Transaction("qrs", 10000, 100, ["nop"], ["tuv"]),  # high feerate
             "tuv": blockbuilder.Transaction("tuv", 100, 100, ["qrs"], []),  # low feerate
-            "xyz": blockbuilder.Transaction("xyz", 1, 1, [], [])
+            "xyz": blockbuilder.Transaction("xyz", 10, 10, [], [])
         }
 
     def test_valid_candidate_set(self):
@@ -184,6 +184,14 @@ class TestBlockbuilder(unittest.TestCase):
         self.assertListEqual(sorted(list(bestCandidateSet.txs.keys())), expectedTxids)
         for txid in expectedTxids:
             self.assertNotIn(txid, mempool.txs.keys())
+
+    def test_pop_best_candidate_set_low_weight(self):
+        mempool = blockbuilder.Mempool()
+        mempool.fromDict(self.testDict)
+
+        bestCandidateSet = mempool.popBestCandidateSet(5)
+
+        self.assertEqual(bestCandidateSet, None)
 
     def test_build_block_template(self):
         mempool = blockbuilder.Mempool()
