@@ -1,7 +1,8 @@
+from itertools import chain, combinations
+import datetime
+import heapq
 import json
 import math
-import datetime
-from itertools import chain, combinations
 
 class Blockbuilder():
     def __init__(self, mempool):
@@ -166,8 +167,8 @@ class Cluster():
             expandedCandidateSets.append(descendantCS)
         return expandedCandidateSets
 
-    def getBestCandidateSet(self, weightLimit=-1):
-        if self.bestCandidate is not None and (weightLimit == -1 or self.bestCandidate.getWeight() <= weightLimit):
+    def getBestCandidateSet(self, weightLimit=4000000):
+        if self.bestCandidate is not None and self.bestCandidate.getWeight() <= weightLimit:
             return self.bestCandidate
         print("Calculate bestCandidateSet for cluster of " + str(len(self.txs)) + ": " + str(self))
         bestCand = None # current best candidateSet
@@ -176,7 +177,7 @@ class Cluster():
         ancestorlessTxs = [tx for tx in self.txs.values() if len(tx.parents) == 0]
         for tx in ancestorlessTxs:
             cand = CandidateSet({tx.txid: tx})
-            if weightLimit == -1 or tx.weight <= weightLimit:
+            if tx.weight <= weightLimit:
                 if bestCand is None or bestCand.getEffectiveFeerate() < cand.getEffectiveFeerate():
                     bestCand = cand
                 searchList.append(cand)
@@ -186,7 +187,7 @@ class Cluster():
             nextCS = searchList.pop()
             if nextCS is None or len(nextCS.txs) == 0 or any(nextCS == x for x in expandedCandidateSets):
                 pass
-            elif weightLimit > -1 and nextCS.getWeight() > weightLimit:
+            elif nextCS.getWeight() > weightLimit:
                 pass
             else:
                 expandedCandidateSets.append(nextCS)
@@ -194,7 +195,7 @@ class Cluster():
                     bestCand = nextCS
                 searchCandidates = self.expandCandidateSet(nextCS, bestCand.getEffectiveFeerate())
                 for sc in searchCandidates:
-                    if weightLimit > -1 and nextCS.getWeight() > weightLimit:
+                    if nextCS.getWeight() > weightLimit:
                         pass
                     elif any(sc == x for x in expandedCandidateSets):
                         pass
