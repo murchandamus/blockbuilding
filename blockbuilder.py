@@ -40,6 +40,8 @@ class Blockbuilder():
         output_file.close()
 
 
+# A Transaction in the context of a specific mempool and blocktemplate state.
+# Ancestors, Parents, and Descendants will be updated as the blocktemplate is being built whenever anything gets picked from the Cluster.
 class Transaction():
     def __init__(self, txid, fee, weight, parents=None, descendants=None):
         self.txid = txid
@@ -112,6 +114,7 @@ class Cluster():
     def __init__(self, tx):
         self.representative = tx.txid
         self.txs = {tx.txid: tx}
+        self.ancestorSets = None
         self.bestCandidate = None
 
     def addTx(self, tx):
@@ -120,6 +123,29 @@ class Cluster():
 
     def __str__(self):
         return "{" + self.representative + ": " + str(self.txs.keys()) + "}"
+
+    # Return CandidateSet composed of txid and its ancestors
+    def assembleAncestry(self, txid):
+        # cache ancestry until cluster is used
+        if self.ancestorSets is not None and txid in self.ancestorSets:
+            return ancestorSets[txid]
+
+        # collect all ancestors of txid
+        tx = self.txs[txid]
+        ancestry = {txid: tx}
+        searchList = [] + tx.parents
+        while len(searchList) > 0:
+            ancestorTxid = searchList.pop()
+            if ancestorTxid not in ancestry.keys():
+                ancestor = self.txs[ancestorTxid]
+                ancestry[ancestorTxid] = ancestor
+                searchList += ancestor.parents
+        ancestorSet = CandidateSet(ancestry)
+        if self.ancestorSets is None:
+            self.ancestorSets = {txid: ancestorSet}
+        else:
+            self.ancestorSets[txid] = CandidateSet(ancestry)
+        return self.ancestorSets[txid]
 
     def expandCandidateSet(self, candidateSet, bestFeerate):
         allDirectDescendants = candidateSet.getDirectDescendants()

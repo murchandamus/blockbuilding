@@ -53,6 +53,15 @@ class TestBlockbuilder(unittest.TestCase):
 
         return cluster
 
+    def test_assemble_ancestry(self):
+        cluster = self.build_nop_cluster()
+        nopAS = cluster.assembleAncestry('nop')
+        self.assertTrue('nop' in nopAS.txs.keys())
+
+        qrsAS = cluster.assembleAncestry('qrs')
+        self.assertTrue('nop' in qrsAS.txs.keys())
+        self.assertTrue('qrs' in qrsAS.txs.keys())
+
     def test_get_best_candidate_set(self):
         cluster = self.build_nop_cluster()
         best = cluster.getBestCandidateSet()
