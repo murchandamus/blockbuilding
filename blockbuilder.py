@@ -122,6 +122,20 @@ class Cluster():
         self.txs[tx.txid] = tx
         self.representative = min(tx.txid, self.representative)
 
+    def __lt__(self, other):
+        if self.bestCandidate is None:
+            print('Cluster ' + str(self) + 'has no CandidateSet')
+        myCandidate = self.getBestCandidateSet()
+        if myCandidate is None:
+            return false
+        myWeight = myCandidate.getWeight()
+        myFeeRate = myCandidate.getEffectiveFeerate()
+
+        otherCandidate = other.getBestCandidateSet()
+        otherWeight = otherCandidate.getWeight()
+        otherFeeRate = otherCandidate.getEffectiveFeerate()
+        return myFeeRate > otherFeeRate or (myFeeRate == otherFeeRate and myWeight > otherWeight)
+
     def __str__(self):
         return "{" + self.representative + ": " + str(self.txs.keys()) + "}"
 
@@ -217,6 +231,7 @@ class Mempool():
         self.txs = {}
         self.txsToBeClustered = {} # Bucket for transactions from used cluster
         self.clusters = {}  # Maps representative txid to cluster
+        self.clusterHeap = [] # Heapifies clusters by bestCandidateSet
         self.txClusterMap = {}  # Maps txid to its cluster
 
     def fromDict(self, txDict):
@@ -283,9 +298,11 @@ class Mempool():
                 nextTx = self.getTx(nextTxid)
                 localCluster.addTx(nextTx)
                 localClusterTxids += nextTx.getLocalClusterTxids()
+            localCluster.getBestCandidateSet(weightLimit)
             self.clusters[localCluster.representative] = localCluster
             for lct in localCluster.txs.keys():
                 self.txClusterMap[lct] = localCluster.representative
+            heapq.heappush(self.clusterHeap, localCluster)
 
         print('finished cluster building')
         self.txsToBeClustered = {}
@@ -293,18 +310,20 @@ class Mempool():
 
     def popBestCandidateSet(self, weightLimit=40000000):
         self.cluster(weightLimit)
-        bestCandidateSet = None
-        bestCluster = None
-        for c in self.clusters.values():
-            clusterBest = c.getBestCandidateSet(weightLimit)
-            if clusterBest is not None and (bestCandidateSet is None or clusterBest.getEffectiveFeerate() > bestCandidateSet.getEffectiveFeerate()):
-                bestCandidateSet = clusterBest
-                print("Found better candidate set in cluster" + str(bestCandidateSet))
-                bestCluster = c
-
-        print('traversed all clusters in popBest')
+        bestCluster = heapq.heappop(self.clusterHeap)
+        bestCandidateSet = bestCluster.bestCandidate
+        if bestCandidateSet is None:
+            raise Exception("Best candidate set was None unexpectedly in cluster: " + str(bestCluster))
+        # If bestCandidateSet exceeds weightLimit, refresh bestCluster and get next best cluster
+        while bestCandidateSet.getWeight() > weightLimit:
+            # Update best candidate set in cluster with weight limit
+            print("bestCandidateSet " + str(bestCandidateSet) + " is over weight limit: " + str(weightLimit))
+            bestCluster.getBestCandidateSet(weightLimit)
+            bestCluster = heapq.heappushpop(self.clusterHeap, bestCluster)
+            bestCandidateSet = bestCluster.bestCandidate
 
         print("best candidate from all clusters: " + str(bestCandidateSet))
+
         if bestCandidateSet is None:
             print("Block finished")
         else:
