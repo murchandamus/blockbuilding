@@ -125,8 +125,9 @@ class Cluster():
         self.representative = min(tx.txid, self.representative)
 
     def __lt__(self, other):
+        self.weightLimit = min(self.weightLimit, other.weightLimit)
         if self.bestCandidate is None:
-            print('Cluster ' + str(self) + 'has no CandidateSet')
+            print('Cluster ' + str(self) + ' has no CandidateSet')
         myCandidate = self.getBestCandidateSet(self.weightLimit)
         if myCandidate is None:
             return False
@@ -189,7 +190,7 @@ class Cluster():
         self.weightLimit = min(weightLimit, self.weightLimit)
         if self.bestCandidate is not None and self.bestCandidate.getWeight() <= self.weightLimit:
             return self.bestCandidate
-        print("Calculate bestCandidateSet for cluster of " + str(len(self.txs)) + ": " + str(self))
+        print("Calculate bestCandidateSet at weightLimit of " + str(weightLimit) + " for cluster of " + str(len(self.txs)) + ": " + str(self))
         bestCand = None # current best candidateSet
         expandedCandidateSets = [] # candidateSets that have been evaluated
         searchList = [] # candidates that still need to be evaluated
@@ -316,16 +317,18 @@ class Mempool():
     def popBestCandidateSet(self, weightLimit):
         print("Called popBestCandidateSet with weightLimit " + str(weightLimit))
         self.cluster(weightLimit)
-        bestCluster = None
         bestCluster = heapq.heappop(self.clusterHeap)
-        bestCandidateSet = None
         bestCandidateSet = bestCluster.bestCandidate
         # If bestCandidateSet exceeds weightLimit, refresh bestCluster and get next best cluster
         while bestCandidateSet is not None and bestCandidateSet.getWeight() > weightLimit:
             # Update best candidate set in cluster with weight limit
             print("bestCandidateSet " + str(bestCandidateSet) + " is over weight limit: " + str(weightLimit))
-            bestCluster.getBestCandidateSet(weightLimit)
-            bestCluster = heapq.heappushpop(self.clusterHeap, bestCluster)
+            if bestCluster.getBestCandidateSet(weightLimit) is None:
+                # don't add bestCluster without candidateSet back to heap
+                bestCluster = heapq.heappop(self.clusterHeap)
+            else:
+                # add refreshed bestCluster back to heap then get best
+                bestCluster = heapq.heappushpop(self.clusterHeap, bestCluster)
             bestCandidateSet = bestCluster.bestCandidate
 
         print("best candidate from all clusters: " + str(bestCandidateSet))
