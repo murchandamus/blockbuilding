@@ -113,11 +113,12 @@ class CandidateSet():
 
 # Maximal connected sets of transactions
 class Cluster():
-    def __init__(self, tx):
+    def __init__(self, tx, weightLimit):
         self.representative = tx.txid
         self.txs = {tx.txid: tx}
         self.ancestorSets = None
         self.bestCandidate = None
+        self.weightLimit = weightLimit
 
     def addTx(self, tx):
         self.txs[tx.txid] = tx
@@ -126,13 +127,13 @@ class Cluster():
     def __lt__(self, other):
         if self.bestCandidate is None:
             print('Cluster ' + str(self) + 'has no CandidateSet')
-        myCandidate = self.getBestCandidateSet()
+        myCandidate = self.getBestCandidateSet(self.weightLimit)
         if myCandidate is None:
             return False
         myWeight = myCandidate.getWeight()
         myFeeRate = myCandidate.getEffectiveFeerate()
 
-        otherCandidate = other.getBestCandidateSet()
+        otherCandidate = other.getBestCandidateSet(self.weightLimit)
         if otherCandidate is None:
             return True
         otherWeight = otherCandidate.getWeight()
@@ -184,8 +185,9 @@ class Cluster():
             expandedCandidateSets.append(descendantCS)
         return expandedCandidateSets
 
-    def getBestCandidateSet(self, weightLimit=4000000):
-        if self.bestCandidate is not None and self.bestCandidate.getWeight() <= weightLimit:
+    def getBestCandidateSet(self, weightLimit):
+        self.weightLimit = min(weightLimit, self.weightLimit)
+        if self.bestCandidate is not None and self.bestCandidate.getWeight() <= self.weightLimit:
             return self.bestCandidate
         print("Calculate bestCandidateSet for cluster of " + str(len(self.txs)) + ": " + str(self))
         bestCand = None # current best candidateSet
@@ -194,7 +196,7 @@ class Cluster():
         ancestorlessTxs = [tx for tx in self.txs.values() if len(tx.parents) == 0]
         for tx in ancestorlessTxs:
             cand = CandidateSet({tx.txid: tx})
-            if tx.weight <= weightLimit:
+            if tx.weight <= self.weightLimit:
                 if bestCand is None or bestCand.getEffectiveFeerate() < cand.getEffectiveFeerate():
                     bestCand = cand
                 searchList.append(cand)
@@ -204,7 +206,7 @@ class Cluster():
             nextCS = searchList.pop()
             if nextCS is None or len(nextCS.txs) == 0 or any(nextCS == x for x in expandedCandidateSets):
                 pass
-            elif nextCS.getWeight() > weightLimit:
+            elif nextCS.getWeight() > self.weightLimit:
                 pass
             else:
                 expandedCandidateSets.append(nextCS)
@@ -212,7 +214,7 @@ class Cluster():
                     bestCand = nextCS
                 searchCandidates = self.expandCandidateSet(nextCS, bestCand.getEffectiveFeerate())
                 for sc in searchCandidates:
-                    if nextCS.getWeight() > weightLimit:
+                    if nextCS.getWeight() > self.weightLimit:
                         pass
                     elif any(sc == x for x in expandedCandidateSets):
                         pass
@@ -287,12 +289,12 @@ class Mempool():
     def getTxs(self):
         return self.txs
 
-    def cluster(self, weightLimit=4000000):
+    def cluster(self, weightLimit):
         for txid, tx in self.txsToBeClustered.items():
             if txid in self.txClusterMap.keys():
                 continue
             print("Cluster tx: " + txid)
-            localCluster = Cluster(tx)
+            localCluster = Cluster(tx, weightLimit)
             localClusterTxids = tx.getLocalClusterTxids()
             while len(localClusterTxids) > 0:
                 nextTxid = localClusterTxids.pop()
@@ -311,17 +313,15 @@ class Mempool():
         self.txsToBeClustered = {}
         return self.clusters
 
-    def popBestCandidateSet(self, weightLimit=4000000):
+    def popBestCandidateSet(self, weightLimit):
         print("Called popBestCandidateSet with weightLimit " + str(weightLimit))
         self.cluster(weightLimit)
         bestCluster = None
         bestCluster = heapq.heappop(self.clusterHeap)
         bestCandidateSet = None
         bestCandidateSet = bestCluster.bestCandidate
-        if bestCandidateSet is None:
-            raise Exception("Best candidate set was None unexpectedly in cluster: " + str(bestCluster))
         # If bestCandidateSet exceeds weightLimit, refresh bestCluster and get next best cluster
-        while bestCandidateSet.getWeight() > weightLimit:
+        while bestCandidateSet is not None and bestCandidateSet.getWeight() > weightLimit:
             # Update best candidate set in cluster with weight limit
             print("bestCandidateSet " + str(bestCandidateSet) + " is over weight limit: " + str(weightLimit))
             bestCluster.getBestCandidateSet(weightLimit)
