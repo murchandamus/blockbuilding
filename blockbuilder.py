@@ -8,20 +8,27 @@ import time
 class Blockbuilder():
     def __init__(self, mempool):
         self.mempool = mempool
-        self.selectedTxs = {}
+        self.selectedTxs = []
         # 4M weight units minus header of 80 bytes
         self.availableWeight = 4000000-4*80
 
     def buildBlockTemplate(self):
         print("Building blocktemplate…")
+        refMempool = Mempool()
+        refMempool.fromTXT(mempoolFileString)
         while len(self.mempool.txs) > 0 and self.availableWeight > 0:
             print("Weight left: " + str(self.availableWeight))
             bestCandidateSet = self.mempool.popBestCandidateSet(self.availableWeight)
             if bestCandidateSet is None or len(bestCandidateSet.txs) == 0:
                 break
-            for tx in bestCandidateSet.txs.values():
-                self.selectedTxs[tx.txid] = tx
+            txsIdsToAdd = list(bestCandidateSet.txs.keys())
+            while len(txsIdsToAdd) != 0:
+                for txid in txsIdsToAdd:
+                    if set(refMempool.txs[txid].parents).issubset(set(self.selectedTxs)):
+                        self.selectedTxs.append(bestCandidateSet.txs[txid].txid)
+                        txsIdsToAdd.remove(txid)
             self.availableWeight -= bestCandidateSet.getWeight()
+
         return self.selectedTxs
 
     def outputBlockTemplate(self, blockId=""):
@@ -34,11 +41,13 @@ class Blockbuilder():
 
         filePath += '.byclusters'
         with open(filePath, 'w') as output_file:
-            selected = CandidateSet(self.selectedTxs)
+            print(self.selectedTxs)
+            mempool.fromTXT(mempoolFileString)
+            selected = CandidateSet({txid: mempool.txs[txid] for txid in self.selectedTxs})
             output_file.write('CreateNewBlockByClusters(): fees ' + str(selected.getFees()) + ' weight ' + str(selected.getWeight()) + '\n')
 
-            for tx in self.selectedTxs.values():
-                output_file.write(tx.txid + '\n')
+            for tx in self.selectedTxs:
+                output_file.write(tx + '\n')
         output_file.close()
 
 
@@ -365,6 +374,7 @@ if __name__ == '__main__':
     # mempoolFileString = "data/mempool.json"
     # mempool.fromJSON(mempoolFileString)
     mempoolFileString = "data/data example/000000000000000000269e0949579bd98366bef1ca308d134182dbf28dc6fdef.mempool"
+    # mempoolFileString = "data/mempoolTXT"
     mempool.fromTXT(mempoolFileString)
     bb = Blockbuilder(mempool)
     bb.buildBlockTemplate()
