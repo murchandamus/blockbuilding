@@ -9,14 +9,14 @@ import time
 class Blockbuilder():
     def __init__(self, mempool):
         self.mempool = mempool
+        self.refMempool = Mempool()
+        self.refMempool.fromDict(mempool.txs)
         self.selectedTxs = []
         # 4M weight units minus header of 80 bytes
         self.availableWeight = 4000000-4*80
 
     def buildBlockTemplate(self):
         print("Building blocktemplate…")
-        refMempool = Mempool()
-        refMempool.fromTXT(mempoolFileString)
         while len(self.mempool.txs) > 0 and self.availableWeight > 0:
             print("Weight left: " + str(self.availableWeight))
             bestCandidateSet = self.mempool.popBestCandidateSet(self.availableWeight)
@@ -25,7 +25,7 @@ class Blockbuilder():
             txsIdsToAdd = list(bestCandidateSet.txs.keys())
             while len(txsIdsToAdd) != 0:
                 for txid in txsIdsToAdd:
-                    if set(refMempool.txs[txid].parents).issubset(set(self.selectedTxs)):
+                    if set(self.refMempool.txs[txid].parents).issubset(set(self.selectedTxs)):
                         self.selectedTxs.append(bestCandidateSet.txs[txid].txid)
                         txsIdsToAdd.remove(txid)
             self.availableWeight -= bestCandidateSet.getWeight()
