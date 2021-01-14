@@ -3,6 +3,7 @@ import datetime
 import heapq
 import json
 import math
+from pathlib import Path
 import time
 
 class Blockbuilder():
@@ -34,10 +35,9 @@ class Blockbuilder():
     def outputBlockTemplate(self, blockId=""):
         filePath = "results/"
         if blockId != "":
-            filePath += blockId
-        else:
-            date_now = datetime.datetime.now()
-            filePath += date_now.isoformat()
+            filePath += blockId + '-'
+        date_now = datetime.datetime.now()
+        filePath += date_now.isoformat()
 
         filePath += '.byclusters'
         with open(filePath, 'w') as output_file:
@@ -248,8 +248,10 @@ class Mempool():
         self.clusters = {}  # Maps representative txid to cluster
         self.clusterHeap = [] # Heapifies clusters by bestCandidateSet
         self.txClusterMap = {}  # Maps txid to its cluster
+        self.blockId = ''
 
-    def fromDict(self, txDict):
+    def fromDict(self, txDict, blockId = 'dictionary'):
+        self.blockId = blockId
         for txid, tx in txDict.items():
             self.txs[txid] = tx
             self.txsToBeClustered[txid] = tx
@@ -257,6 +259,7 @@ class Mempool():
     def fromJSON(self, filePath):
         txsJSON = {}
         with open(filePath, 'r') as import_file:
+            self.blockId = Path(filePath).stem
             txsJSON = json.load(import_file)
 
             for txid in txsJSON.keys():
@@ -274,6 +277,7 @@ class Mempool():
     def fromTXT(self, filePath, SplitBy=" "):
         print("Loading mempool…")
         with open(filePath, 'r') as import_file:
+            self.blockId = Path(filePath).stem
             for line in import_file:
                 if 'txid' in line:
                     continue
@@ -378,6 +382,6 @@ if __name__ == '__main__':
     mempool.fromTXT(mempoolFileString)
     bb = Blockbuilder(mempool)
     bb.buildBlockTemplate()
-    bb.outputBlockTemplate()
+    bb.outputBlockTemplate(mempool.blockId)
     endTime = time.time()
     print('Elapsed time: ' + str(endTime - startTime))
