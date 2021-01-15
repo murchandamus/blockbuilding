@@ -128,9 +128,12 @@ class Cluster():
         self.ancestorSets = None
         self.bestCandidate = None
         self.weightLimit = weightLimit
+        self.eligibleTxs = {tx.txid: tx}
+        self.uselessTxs = {}
 
     def addTx(self, tx):
         self.txs[tx.txid] = tx
+        self.eligibleTxs[tx.txid] = tx
         self.representative = min(tx.txid, self.representative)
 
     def __lt__(self, other):
@@ -176,6 +179,28 @@ class Cluster():
             self.ancestorSets[txid] = ancestorSet
         return self.ancestorSets[txid]
 
+    def pruneEligibleTxs(self, bestFeerate):
+        while True:
+            nothingChanged = True
+            prune = []
+            for txid, tx in self.eligibleTxs.items():
+                if tx.getEffectiveFeerate() >= bestFeerate:
+                    continue
+                if len(tx.descendants) == 0:
+                    # can never be part of best candidate set, due to low feerate and no descendants
+                    nothingChanged = False
+                    prune.append(txid)
+                    self.uselessTxs[txid] = tx
+                elif all(d in self.uselessTxs.keys() for d in tx.descendants):
+                    # can never be part of best candidate set, due to low feerate and only useless descendants
+                    nothingChanged = False
+                    prune.append(txid)
+                    self.uselessTxs[txid] = tx
+            for txid in prune:
+                self.eligibleTxs.pop(txid)
+            if nothingChanged:
+                break
+
     def expandCandidateSet(self, candidateSet, bestFeerate):
         allDirectDescendants = candidateSet.getDirectDescendants()
         expandedCandidateSets = []
@@ -183,7 +208,7 @@ class Cluster():
             # Skip descendants of lower feerate than candidate set without children
             descendant = self.txs[d]
             descendantFeeRate = descendant.getEffectiveFeerate()
-            if len(descendant.descendants) == 0 and descendantFeeRate < bestFeerate:
+            if d in self.uselessTxs.keys():
                 continue
             # Ensure this is a new dictionary instead of modifying an existing
             expandedSetTxs = {descendant.txid: descendant}
@@ -199,6 +224,9 @@ class Cluster():
         self.weightLimit = min(weightLimit, self.weightLimit)
         if self.bestCandidate is not None and self.bestCandidate.getWeight() <= self.weightLimit:
             return self.bestCandidate
+        self.eligibleTxs = {}
+        self.eligibleTxs.update(self.txs)
+        self.uselessTxs = {}
         print("Calculate bestCandidateSet at weightLimit of " + str(weightLimit) + " for cluster of " + str(len(self.txs)) + ": " + str(self))
         bestCand = None # current best candidateSet
         expandedCandidateSets = [] # candidateSets that have been evaluated
@@ -209,6 +237,7 @@ class Cluster():
             if tx.weight <= self.weightLimit:
                 if bestCand is None or bestCand.getEffectiveFeerate() < cand.getEffectiveFeerate():
                     bestCand = cand
+                    self.pruneEligibleTxs(bestCand.getEffectiveFeerate())
                 searchList.append(cand)
 
         while len(searchList) > 0:
@@ -217,11 +246,13 @@ class Cluster():
             if nextCS is None or len(nextCS.txs) == 0 or any(nextCS == x for x in expandedCandidateSets):
                 pass
             elif nextCS.getWeight() > self.weightLimit:
+                expandedCandidateSets.append(nextCS)
                 pass
             else:
                 expandedCandidateSets.append(nextCS)
                 if (nextCS.getEffectiveFeerate() > bestCand.getEffectiveFeerate()):
                     bestCand = nextCS
+                    self.pruneEligibleTxs(bestCand.getEffectiveFeerate())
                 searchCandidates = self.expandCandidateSet(nextCS, bestCand.getEffectiveFeerate())
                 for sc in searchCandidates:
                     if nextCS.getWeight() > self.weightLimit:
