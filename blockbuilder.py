@@ -231,9 +231,10 @@ class Cluster():
         for tx in ancestorlessTxs:
             cand = CandidateSet({tx.txid: tx})
             if tx.weight <= self.weightLimit:
-                if bestCand is None or bestCand.getEffectiveFeerate() < cand.getEffectiveFeerate():
+                if bestCand is None or bestCand.getEffectiveFeerate() < cand.getEffectiveFeerate() or (bestCand.getEffectiveFeerate() == cand.getEffectiveFeerate() and bestCand.getWeight() < cand.getWeight()):
                     bestCand = cand
                     self.pruneEligibleTxs(bestCand.getEffectiveFeerate())
+                    searchList.append(CandidateSet(self.eligibleTxs))
                 searchList.append(cand)
 
         while len(searchList) > 0:
@@ -246,9 +247,10 @@ class Cluster():
                 pass
             else:
                 expandedCandidateSets.append(nextCS)
-                if (nextCS.getEffectiveFeerate() > bestCand.getEffectiveFeerate()):
+                if (nextCS.getEffectiveFeerate() > bestCand.getEffectiveFeerate() or (nextCS.getEffectiveFeerate() == bestCand.getEffectiveFeerate() and nextCS.getWeight() > bestCand.getWeight())):
                     bestCand = nextCS
                     self.pruneEligibleTxs(bestCand.getEffectiveFeerate())
+                    searchList.append(CandidateSet(self.eligibleTxs))
                 searchCandidates = self.expandCandidateSet(nextCS, bestCand.getEffectiveFeerate())
                 for sc in searchCandidates:
                     if nextCS.getWeight() > self.weightLimit:
