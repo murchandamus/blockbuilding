@@ -79,6 +79,8 @@ class Transaction():
 class CandidateSet():
     def __init__(self, txs):
         self.txs = {}
+        self.weight = -1
+        self.effectiveFeerate = -1
         if len(txs) < 1:
             raise TypeError("set cannot be empty")
         for txid, tx in txs.items():
@@ -100,13 +102,17 @@ class CandidateSet():
         return NotImplemented
 
     def getWeight(self):
-        return sum(tx.weight for tx in self.txs.values())
+        if self.weight < 0:
+            self.weight = sum(tx.weight for tx in self.txs.values())
+        return self.weight
 
     def getFees(self):
         return sum(tx.fee for tx in self.txs.values())
 
     def getEffectiveFeerate(self):
-        return self.getFees()/self.getWeight()
+        if self.effectiveFeerate < 0:
+            self.effectiveFeerate = self.getFees()/self.getWeight()
+        return self.effectiveFeerate
 
     def getDirectDescendants(self):
         allDirectDescendants = []
@@ -155,24 +161,22 @@ class Cluster():
     # Return CandidateSet composed of txid and its ancestors
     def assembleAncestry(self, txid):
         # cache ancestry until cluster is used
-        if self.ancestorSets is not None and txid in self.ancestorSets:
-            return self.ancestorSets[txid]
-
-        # collect all ancestors of txid
-        tx = self.txs[txid]
-        ancestry = {txid: tx}
-        searchList = [] + tx.parents
-        while len(searchList) > 0:
-            ancestorTxid = searchList.pop()
-            if ancestorTxid not in ancestry.keys():
-                ancestor = self.txs[ancestorTxid]
-                ancestry[ancestorTxid] = ancestor
-                searchList += ancestor.parents
-        ancestorSet = CandidateSet(ancestry)
-        if self.ancestorSets is None:
-            self.ancestorSets = {txid: ancestorSet}
-        else:
-            self.ancestorSets[txid] = ancestorSet
+        if self.ancestorSets is None or txid not in self.ancestorSets:
+            # collect all ancestors of txid
+            tx = self.txs[txid]
+            ancestry = {txid: tx}
+            searchList = [] + tx.parents
+            while len(searchList) > 0:
+                ancestorTxid = searchList.pop()
+                if ancestorTxid not in ancestry.keys():
+                    ancestor = self.txs[ancestorTxid]
+                    ancestry[ancestorTxid] = ancestor
+                    searchList += ancestor.parents
+            ancestorSet = CandidateSet(ancestry)
+            if self.ancestorSets is None:
+                self.ancestorSets = {txid: ancestorSet}
+            else:
+                self.ancestorSets[txid] = ancestorSet
         return self.ancestorSets[txid]
 
     def pruneEligibleTxs(self, bestFeerate):
@@ -227,15 +231,18 @@ class Cluster():
         bestCand = None # current best candidateSet
         expandedCandidateSets = [] # candidateSets that have been evaluated
         searchList = [] # candidates that still need to be evaluated
-        ancestorlessTxs = [tx for tx in self.txs.values() if len(tx.parents) == 0]
-        for tx in ancestorlessTxs:
-            cand = CandidateSet({tx.txid: tx})
-            if tx.weight <= self.weightLimit:
+
+        for txid in self.eligibleTxs.keys():
+            cand = self.assembleAncestry(txid)
+            if cand.getWeight() <= self.weightLimit:
                 if bestCand is None or bestCand.getEffectiveFeerate() < cand.getEffectiveFeerate() or (bestCand.getEffectiveFeerate() == cand.getEffectiveFeerate() and bestCand.getWeight() < cand.getWeight()):
                     bestCand = cand
-                    self.pruneEligibleTxs(bestCand.getEffectiveFeerate())
-                    searchList.append(CandidateSet(self.eligibleTxs))
-                searchList.append(cand)
+                    print('ancestrySet is new best candidate set in cluster ' + str(bestCand))
+                searchList.append(bestCand)
+
+        if bestCand is not None:
+            self.pruneEligibleTxs(bestCand.getEffectiveFeerate())
+            searchList.append(CandidateSet(self.eligibleTxs))
 
         while len(searchList) > 0:
             searchList.sort(key=lambda x: x.getEffectiveFeerate())
@@ -367,7 +374,8 @@ class Mempool():
         # Calculate bestCandidate from heap best, until cluster with eligible candidateSet bubbles to top
         while (bestCandidateSet is None or bestCandidateSet.getWeight() > weightLimit) and len(self.clusterHeap) > 0:
             # Update best candidate set in cluster with weight limit
-            print("bestCandidateSet " + str(bestCandidateSet) + " is over weight limit: " + str(weightLimit))
+            if bestCandidateSet is not None:
+                print("bestCandidateSet " + str(bestCandidateSet) + " is over weight limit: " + str(weightLimit))
             if bestCluster.getBestCandidateSet(weightLimit) is None:
                 # don't add bestCluster without candidateSet back to heap
                 bestCluster = heapq.heappop(self.clusterHeap)
