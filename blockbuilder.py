@@ -122,11 +122,13 @@ class CandidateSet():
 
 # Maximal connected sets of transactions
 class Cluster():
+    # TODO: export any cluster of more than 100 txs automatically
     def __init__(self, tx, weightLimit):
         self.representative = tx.txid
         self.txs = {tx.txid: tx}
         self.ancestorSets = None
         self.bestCandidate = None
+        self.bestFeerate = tx.getEffectiveFeerate()
         self.weightLimit = weightLimit
         self.eligibleTxs = {tx.txid: tx}
         self.uselessTxs = {}
@@ -135,23 +137,17 @@ class Cluster():
         self.txs[tx.txid] = tx
         self.eligibleTxs[tx.txid] = tx
         self.representative = min(tx.txid, self.representative)
+        self.bestFeerate = max(self.bestFeerate, tx.getEffectiveFeerate())
 
     def __lt__(self, other):
-        self.weightLimit = min(self.weightLimit, other.weightLimit)
-        if self.bestCandidate is None:
-            print('Cluster ' + str(self) + ' has no CandidateSet')
-        myCandidate = self.getBestCandidateSet(self.weightLimit)
-        if myCandidate is None:
-            return False
-        myWeight = myCandidate.getWeight()
-        myFeeRate = myCandidate.getEffectiveFeerate()
-
-        otherCandidate = other.getBestCandidateSet(self.weightLimit)
-        if otherCandidate is None:
+        # Todo: not necessary to reduce weight in heapification, only when cluster is top of heap
+        if (self.bestFeerate > other.bestFeerate):
             return True
-        otherWeight = otherCandidate.getWeight()
-        otherFeeRate = otherCandidate.getEffectiveFeerate()
-        return myFeeRate > otherFeeRate or (myFeeRate == otherFeeRate and myWeight > otherWeight)
+        if self.bestCandidate is not None and other.bestCandidate is not None:
+            myWeight = self.bestCandidate.getWeight()
+            otherWeight = other.bestCandidate.getWeight()
+            return (self.bestFeerate == other.bestFeerate and myWeight > otherWeight)
+        return False
 
     def __str__(self):
         return "{" + self.representative + ": " + str(self.txs.keys()) + "}"
@@ -262,6 +258,10 @@ class Cluster():
                     else:
                         searchList.append(sc)
         self.bestCandidate = bestCand
+        if bestCand is not None:
+            self.bestFeerate = bestCand.getEffectiveFeerate()
+        else:
+            self.bestFeerate = -1
 
         return self.bestCandidate
 
@@ -348,7 +348,6 @@ class Mempool():
                 nextTx = self.getTx(nextTxid)
                 localCluster.addTx(nextTx)
                 localClusterTxids += nextTx.getLocalClusterTxids()
-            localCluster.getBestCandidateSet(weightLimit)
             self.clusters[localCluster.representative] = localCluster
             for lct in localCluster.txs.keys():
                 self.txClusterMap[lct] = localCluster.representative
@@ -363,8 +362,8 @@ class Mempool():
         self.cluster(weightLimit)
         bestCluster = heapq.heappop(self.clusterHeap)
         bestCandidateSet = bestCluster.bestCandidate
-        # If bestCandidateSet exceeds weightLimit, refresh bestCluster and get next best cluster
-        while bestCandidateSet is not None and bestCandidateSet.getWeight() > weightLimit:
+        # Calculate bestCandidate from heap best, until cluster with eligible candidateSet bubbles to top
+        while (bestCandidateSet is None or bestCandidateSet.getWeight() > weightLimit) and len(self.clusterHeap) > 0:
             # Update best candidate set in cluster with weight limit
             print("bestCandidateSet " + str(bestCandidateSet) + " is over weight limit: " + str(weightLimit))
             if bestCluster.getBestCandidateSet(weightLimit) is None:
