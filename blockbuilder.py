@@ -65,6 +65,9 @@ class Transaction():
             descendants = []
         self.descendants = descendants
 
+    def toJSON(self):
+        return json.dumps(self, default=lambda o: o.__dict__)
+
     def getEffectiveFeerate(self):
         return self.fee/self.weight
 
@@ -128,7 +131,6 @@ class CandidateSet():
 
 # Maximal connected sets of transactions
 class Cluster():
-    # TODO: export any cluster of more than 100 txs automatically
     def __init__(self, tx, weightLimit):
         self.representative = tx.txid
         self.txs = {tx.txid: tx}
@@ -138,6 +140,17 @@ class Cluster():
         self.weightLimit = weightLimit
         self.eligibleTxs = {tx.txid: tx}
         self.uselessTxs = {}
+
+    def toJSON(self):
+        return json.dumps(self.txs, default=lambda o: o.__dict__)
+
+    def export(self):
+        filePath = "problemclusters/"
+        filePath += str(len(self.txs))
+        filePath += "-" + self.representative
+        with open(filePath, 'w') as output_file:
+            json.dump(self.toJSON(), output_file)
+        output_file.close()
 
     def addTx(self, tx):
         self.txs[tx.txid] = tx
@@ -228,6 +241,8 @@ class Cluster():
         self.eligibleTxs.update(self.txs)
         self.uselessTxs = {}
         print("Calculate bestCandidateSet at weightLimit of " + str(weightLimit) + " for cluster of " + str(len(self.txs)) + ": " + str(self))
+        if (len(self.txs) > 99):
+            self.export()
         bestCand = None # current best candidateSet
         expandedCandidateSets = [] # candidateSets that have been evaluated
         searchList = [] # candidates that still need to be evaluated
@@ -420,6 +435,10 @@ if __name__ == '__main__':
     # mempoolFileString = "data/mempool.json"
     # mempool.fromJSON(mempoolFileString)
     mempoolFileString = "data/data example/000000000000000000269e0949579bd98366bef1ca308d134182dbf28dc6fdef.mempool"
+    # mempoolFileString = 'data/data example/00000000000000000002d440cfa03907f71249f040e3f89479ef7c607ee650c4.mempool'
+    # mempoolFileString = 'data/data example/000000000000000000067df78658a05f17aea0844d11c1854a740abf8b6b70cb.mempool'
+    # mempoolFileString = 'data/data example/000000000000000000094644935867ace8ba51e3f0446bb035f4502402a2d04d.mempool'
+    # mempoolFileString = 'data/data example/000000000000000000108d439d6b4ec3f5628a7f25a0a5ce8f5b67d38ff93003.mempool'
     # mempoolFileString = "data/mempoolTXT"
     mempool.fromTXT(mempoolFileString)
     bb = Blockbuilder(mempool)
