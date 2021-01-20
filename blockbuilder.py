@@ -159,14 +159,13 @@ class Cluster():
         self.bestFeerate = max(self.bestFeerate, tx.getEffectiveFeerate())
 
     def __lt__(self, other):
-        # Todo: not necessary to reduce weight in heapification, only when cluster is top of heap
-        if (self.bestFeerate > other.bestFeerate):
-            return True
-        if self.bestCandidate is not None and other.bestCandidate is not None:
-            myWeight = self.bestCandidate.getWeight()
-            otherWeight = other.bestCandidate.getWeight()
-            return (self.bestFeerate == other.bestFeerate and myWeight > otherWeight)
-        return False
+        if self.bestFeerate == other.bestFeerate:
+            if other.bestCandidate is None:
+                return False
+            if self.bestCandidate is None:
+                return True
+            return self.bestCandidate.getWeight() > other.bestCandidate.getWeight()
+        return self.bestFeerate > other.bestFeerate
 
     def __str__(self):
         return "{" + self.representative + ": " + str(self.txs.keys()) + "}"
