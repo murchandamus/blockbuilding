@@ -251,7 +251,6 @@ class Cluster():
                 pass
             elif nextCS.getWeight() > self.weightLimit:
                 expandedCandidateSets.append(nextCS)
-                pass
             else:
                 expandedCandidateSets.append(nextCS)
                 if (nextCS.getEffectiveFeerate() > bestCand.getEffectiveFeerate() or (nextCS.getEffectiveFeerate() == bestCand.getEffectiveFeerate() and nextCS.getWeight() > bestCand.getWeight())):
@@ -383,6 +382,9 @@ class Mempool():
                 # add refreshed bestCluster back to heap then get best
                 bestCluster = heapq.heappushpop(self.clusterHeap, bestCluster)
             bestCandidateSet = bestCluster.bestCandidate
+
+        if bestCandidateSet is not None and bestCandidateSet.getWeight() > weightLimit:
+            bestCandidateSet = None
 
         print("best candidate from all clusters: " + str(bestCandidateSet))
 
