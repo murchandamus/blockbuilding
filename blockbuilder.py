@@ -86,6 +86,7 @@ class Transaction():
     def __init__(self, txid, fee, weight, parents=None, descendants=None):
         self.txid = txid
         self.fee = int(fee)
+        self.feerate = None
         self.weight = int(weight)
         if parents is None:
             parents = []
@@ -98,7 +99,9 @@ class Transaction():
         return json.dumps(self, default=lambda o: o.__dict__)
 
     def getEffectiveFeerate(self):
-        return self.fee/self.weight
+        if not self.feerate:
+            self.feerate = self.fee / self.weight
+        return self.feerate
 
     def getLocalClusterTxids(self):
         return list(set([self.txid] + self.descendants + self.parents))
@@ -113,6 +116,7 @@ class CandidateSet():
         self.txs = {}
         self.weight = -1
         self.effectiveFeerate = -1
+        self.hash = None
         if len(txs) < 1:
             raise TypeError("set cannot be empty")
         for txid, tx in txs.items():
@@ -122,15 +126,17 @@ class CandidateSet():
                 raise TypeError("parent of " + txid + " is not in txs")
 
     def __repr__(self):
-        return "CandidateSet(%s, %s)" % (str(list(self.txs.keys())), str(self.getEffectiveFeerate()))
+        return "CandidateSet(%s, %s)" % (str(sorted(list(self.txs.keys()))), str(self.getEffectiveFeerate()))
 
     def __hash__(self):
-        return hash(self.__repr__())
+        if self.hash is None:
+            self.hash = hash(self.__repr__())
+        return self.hash
 
     def __eq__(self, other):
         """Overrides the default implementation"""
         if isinstance(other, CandidateSet):
-            return self.txs == other.txs
+            return self.__hash__() == other.__hash__()
         return NotImplemented
 
     def getWeight(self):
@@ -147,12 +153,9 @@ class CandidateSet():
         return self.effectiveFeerate
 
     def getDirectDescendants(self):
-        allDirectDescendants = []
-        for tx in self.txs.values():
-            for d in tx.descendants:
-                if d not in self.txs.keys():
-                    allDirectDescendants.append(d)
-        return allDirectDescendants
+        allDescendants = (d for tx in self.txs.values() for d in tx.descendants)
+        allDirectDescendants = set(allDescendants) - set(self.txs.keys())
+        return list(allDirectDescendants)
 
     def __str__(self):
         return "{feerate: " + str(self.getEffectiveFeerate()) + ", txs: "+ str(list(self.txs.keys())) + "}"
@@ -221,7 +224,7 @@ class Cluster():
         return self.ancestorSets[txid]
 
     def pruneEligibleTxs(self, bestFeerate):
-        while True:
+        while 1:
             nothingChanged = True
             prune = []
             for txid, tx in self.eligibleTxs.items():
@@ -246,11 +249,11 @@ class Cluster():
         allDirectDescendants = candidateSet.getDirectDescendants()
         expandedCandidateSets = []
         for d in allDirectDescendants:
+            if d in self.uselessTxs.keys():
+                continue
             # Skip descendants of lower feerate than candidate set without children
             descendant = self.txs[d]
             descendantFeeRate = descendant.getEffectiveFeerate()
-            if d in self.uselessTxs.keys():
-                continue
             # Ensure this is a new dictionary instead of modifying an existing
             expandedSetTxs = {descendant.txid: descendant}
             # Add ancestry
@@ -272,7 +275,7 @@ class Cluster():
         if (len(self.txs) > 99):
             self.export()
         bestCand = None # current best candidateSet
-        expandedCandidateSets = [] # candidateSets that have been evaluated
+        expandedCandidateSets = set() # candidateSets that have been evaluated
         searchList = [] # candidates that still need to be evaluated
 
         for txid in self.eligibleTxs.keys():
@@ -290,12 +293,12 @@ class Cluster():
         while len(searchList) > 0 and len(expandedCandidateSets) < 1000:
             searchList.sort(key=lambda x: x.getEffectiveFeerate())
             nextCS = searchList.pop()
-            if nextCS is None or len(nextCS.txs) == 0 or any(nextCS == x for x in expandedCandidateSets):
+            if nextCS is None or len(nextCS.txs) == 0 or nextCS in expandedCandidateSets:
                 pass
             elif nextCS.getWeight() > self.weightLimit:
-                expandedCandidateSets.append(nextCS)
+                expandedCandidateSets.add(nextCS)
             else:
-                expandedCandidateSets.append(nextCS)
+                expandedCandidateSets.add(nextCS)
                 if (nextCS.getEffectiveFeerate() > bestCand.getEffectiveFeerate() or (nextCS.getEffectiveFeerate() == bestCand.getEffectiveFeerate() and nextCS.getWeight() > bestCand.getWeight())):
                     bestCand = nextCS
                     self.pruneEligibleTxs(bestCand.getEffectiveFeerate())
