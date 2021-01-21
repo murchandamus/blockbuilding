@@ -258,7 +258,7 @@ class Cluster():
             self.pruneEligibleTxs(bestCand.getEffectiveFeerate())
             searchList.append(CandidateSet(self.eligibleTxs))
 
-        while len(searchList) > 0:
+        while len(searchList) > 0 and len(expandedCandidateSets) < 1000:
             searchList.sort(key=lambda x: x.getEffectiveFeerate())
             nextCS = searchList.pop()
             if nextCS is None or len(nextCS.txs) == 0 or any(nextCS == x for x in expandedCandidateSets):
