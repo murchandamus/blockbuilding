@@ -1,10 +1,10 @@
 import unittest
-import blockcompare
+import XLSBlockCompare
 
 class TestBlockcompare(unittest.TestCase):
 
     def test_getBlockDetailsFromFile(self):
-        self.assertEqual(blockcompare.getBlockDetailsFromFile(r"./blockCompareTest/11111111.gbt"), ("100", "200"))
+        self.assertEqual(XLSBlockCompare.getBlockDetailsFromFile(r"./blockCompareTest/11111111.gbt"), ("100", "200"))
 
 if __name__ == '__main__':
     unittest.main()
