@@ -77,4 +77,4 @@ if __name__ == '__main__':
         print(BlockDic[block].blockNumber)
         print(BlockDic[block].weights)
         print(BlockDic[block].totalFees)
-    writeBlockDetailsToXSL("checkXSL123.xls", BlockDic, blockTypes)
+    writeBlockDetailsToXSL("checkXSL1234.xls", BlockDic, blockTypes)
