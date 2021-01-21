@@ -1,10 +1,40 @@
 from itertools import chain, combinations
 import datetime
+import getopt
 import heapq
 import json
 import math
 from pathlib import Path
+import sys
 import time
+
+def main(argv):
+    mempoolfilepath = ''
+    try:
+        opts, args = getopt.getopt(argv, "hm:", ["mempoolfile="])
+    except getopt.GetoptError:
+        print ('blockbuilder.py -m <mempoolfile>')
+        sys.exit(2)
+    for opt, arg in opts:
+        if opt == '-h':
+            print ('blockbuilder.py -m <mempoolfile>')
+            sys.exit()
+        elif opt in ("-m", "--mempoolfile"):
+            mempoolfilepath = arg
+        print ('Mempool file is "', mempoolfilepath)
+
+    if mempoolfilepath is '':
+        print ('Missing mempool file path: blockbuilder.py -m <mempoolfile>')
+        sys.exit(2)
+
+    startTime = time.time()
+    mempool = Mempool()
+    mempool.fromTXT(mempoolfilepath)
+    bb = Blockbuilder(mempool)
+    bb.buildBlockTemplate()
+    bb.outputBlockTemplate(mempool.blockId)
+    endTime = time.time()
+    print('Elapsed time: ' + str(endTime - startTime))
 
 class Blockbuilder():
     def __init__(self, mempool):
@@ -34,7 +64,7 @@ class Blockbuilder():
 
     def outputBlockTemplate(self, blockId=""):
         filePath = "results/"
-        if blockId != "":
+        if blockId is not None and blockId != "":
             filePath += blockId + '-'
         date_now = datetime.datetime.now()
         filePath += date_now.isoformat()
@@ -42,8 +72,7 @@ class Blockbuilder():
         filePath += '.byclusters'
         with open(filePath, 'w') as output_file:
             print(self.selectedTxs)
-            mempool.fromTXT(mempoolFileString)
-            selected = CandidateSet({txid: mempool.txs[txid] for txid in self.selectedTxs})
+            selected = CandidateSet({txid: self.refMempool.txs[txid] for txid in self.selectedTxs})
             output_file.write('CreateNewBlockByClusters(): fees ' + str(selected.getFees()) + ' weight ' + str(selected.getWeight()) + '\n')
 
             for tx in self.selectedTxs:
@@ -429,19 +458,4 @@ def getRepresentativeTxid(txids):
 
 
 if __name__ == '__main__':
-    startTime = time.time()
-    mempool = Mempool()
-    # mempoolFileString = "data/mempool.json"
-    # mempool.fromJSON(mempoolFileString)
-    mempoolFileString = "data/data example/000000000000000000269e0949579bd98366bef1ca308d134182dbf28dc6fdef.mempool"
-    # mempoolFileString = 'data/data example/00000000000000000002d440cfa03907f71249f040e3f89479ef7c607ee650c4.mempool'
-    # mempoolFileString = 'data/data example/000000000000000000067df78658a05f17aea0844d11c1854a740abf8b6b70cb.mempool'
-    # mempoolFileString = 'data/data example/000000000000000000094644935867ace8ba51e3f0446bb035f4502402a2d04d.mempool'
-    # mempoolFileString = 'data/data example/000000000000000000108d439d6b4ec3f5628a7f25a0a5ce8f5b67d38ff93003.mempool'
-    # mempoolFileString = "data/mempoolTXT"
-    mempool.fromTXT(mempoolFileString)
-    bb = Blockbuilder(mempool)
-    bb.buildBlockTemplate()
-    bb.outputBlockTemplate(mempool.blockId)
-    endTime = time.time()
-    print('Elapsed time: ' + str(endTime - startTime))
+    main(sys.argv[1:])
