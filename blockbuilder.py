@@ -377,7 +377,17 @@ class Mempool():
         print("Mempool loaded")
         # backfill descendants from parents
         print("Backfill descendants from parents…")
+        actualParents = {}
         for tx in self.txs.values():
+            nonParentAncestors = set()
+            ancestors = tx.parents
+            for p in tx.parents:
+                nonParentAncestors.update(set(self.txs[p].parents).intersection(set(tx.parents)))
+            actualParents[tx.txid] = list(set(tx.parents) - nonParentAncestors)
+        print("Calculated all actual parents")
+
+        for tx in self.txs.values():
+            tx.parents = actualParents[tx.txid]
             for p in tx.parents:
                 self.txs[p].descendants.append(tx.txid)
         print("Descendants backfilled")
