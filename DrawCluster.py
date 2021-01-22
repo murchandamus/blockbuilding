@@ -42,6 +42,15 @@ def drawClusterGraph(cluster):
     networkx.draw(G, with_labels=False, node_color=nodeClr)
     plt.show()
 
+def drawHierarchicalGraph(cluster):
+    G = networkx.DiGraph()
+    for tx in cluster.txs:
+        G.add_node(mempool.txs[tx].txid, label='')
+        for parent in mempool.txs[tx].parents:
+            G.add_edge(mempool.txs[tx].txid, mempool.txs[parent].txid)
+
+    p = networkx.drawing.nx_pydot.to_pydot(G)
+    p.write_png('plot-219.png')
 
 
 if __name__== "__main__":
@@ -50,7 +59,8 @@ if __name__== "__main__":
     mempool.fromJSON(r"./problemclusters/219-010adae49f37806edb85e8a3faedaff4b9b0ee509d581b622c1354aa235d7fe3")
     cluster = readClusterFromMempool()
     print(type(cluster))
-    drawClusterGraph(cluster)
+    # drawClusterGraph(cluster)
+    drawHierarchicalGraph(cluster)
 
     '''
     cluster_to_check = readCluster(r"./data/data example/123_cluster_example")
