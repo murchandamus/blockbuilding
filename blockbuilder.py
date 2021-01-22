@@ -95,8 +95,9 @@ class Transaction():
             descendants = []
         self.descendants = descendants
 
-    def toJSON(self):
-        return json.dumps(self, default=lambda o: o.__dict__)
+    def createExportDict(self):
+        txRep = { 'fee': self.fee, 'weight': self.weight, 'spentby': self.descendants, 'depends': self.parents }
+        return txRep
 
     def getEffectiveFeerate(self):
         if not self.feerate:
@@ -173,15 +174,18 @@ class Cluster():
         self.eligibleTxs = {tx.txid: tx}
         self.uselessTxs = {}
 
-    def toJSON(self):
-        return json.dumps(self.txs, default=lambda o: o.__dict__)
+    def createExportDict(self):
+        exportDict = {}
+        for txid, tx in self.txs.items():
+            exportDict[txid] = tx.createExportDict()
+        return exportDict
 
     def export(self):
         filePath = "problemclusters/"
         filePath += str(len(self.txs))
         filePath += "-" + self.representative
         with open(filePath, 'w') as output_file:
-            json.dump(self.toJSON(), output_file)
+            json.dump(self.createExportDict(), output_file, indent=2)
         output_file.close()
 
     def addTx(self, tx):
