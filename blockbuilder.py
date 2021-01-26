@@ -236,11 +236,13 @@ class Cluster():
                     continue
                 if len(tx.descendants) == 0:
                     # can never be part of best candidate set, due to low feerate and no descendants
+                    # print(txid + ': useless, too low feerate and no descendants')
                     nothingChanged = False
                     prune.append(txid)
                     self.uselessTxs[txid] = tx
                 elif all(d in self.uselessTxs.keys() for d in tx.descendants):
                     # can never be part of best candidate set, due to low feerate and only useless descendants
+                    # print(txid + ': useless, too low feerate and useless descendants')
                     nothingChanged = False
                     prune.append(txid)
                     self.uselessTxs[txid] = tx
@@ -253,7 +255,7 @@ class Cluster():
         allDirectDescendants = candidateSet.getDirectDescendants()
         expandedCandidateSets = []
         for d in allDirectDescendants:
-            if d in self.uselessTxs.keys():
+            if d in self.uselessTxs.keys() or d in candidateSet.txs.keys():
                 continue
             # Skip descendants of lower feerate than candidate set without children
             descendant = self.txs[d]
@@ -305,6 +307,7 @@ class Cluster():
                 expandedCandidateSets.add(nextCS)
                 if (nextCS.getEffectiveFeerate() > bestCand.getEffectiveFeerate() or (nextCS.getEffectiveFeerate() == bestCand.getEffectiveFeerate() and nextCS.getWeight() > bestCand.getWeight())):
                     bestCand = nextCS
+                    # print('new best candidate set in cluster ' + str(bestCand))
                     self.pruneEligibleTxs(bestCand.getEffectiveFeerate())
                     searchList.append(CandidateSet(self.eligibleTxs))
                 searchCandidates = self.expandCandidateSet(nextCS, bestCand.getEffectiveFeerate())
@@ -315,6 +318,7 @@ class Cluster():
                         pass
                     else:
                         searchList.append(sc)
+        # print('expanded ' + str(len(expandedCandidateSets)) + ' candidateSets cluster ' + str(self.representative))
         self.bestCandidate = bestCand
         if bestCand is not None:
             self.bestFeerate = bestCand.getEffectiveFeerate()
@@ -416,6 +420,7 @@ class Mempool():
                 nextTx = self.getTx(nextTxid)
                 localCluster.addTx(nextTx)
                 localClusterTxids += nextTx.getLocalClusterTxids()
+            # Only calculate bestCandidateSet if the best feerate in clusters that bubbles to the top
             self.clusters[localCluster.representative] = localCluster
             for lct in localCluster.txs.keys():
                 self.txClusterMap[lct] = localCluster.representative
@@ -430,6 +435,7 @@ class Mempool():
         self.cluster(weightLimit)
         bestCluster = heapq.heappop(self.clusterHeap) if len(self.clusterHeap) else None
         bestCandidateSet = bestCluster.bestCandidate if bestCluster is not None else None
+        # If bestCandidateSet exceeds weightLimit, refresh bestCluster and get next best cluster
         while (bestCandidateSet is None or bestCandidateSet.getWeight() > weightLimit) and len(self.clusterHeap) > 0:
             # Update best candidate set in cluster with weight limit
             if bestCandidateSet is not None:
