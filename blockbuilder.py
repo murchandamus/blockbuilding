@@ -428,9 +428,8 @@ class Mempool():
     def popBestCandidateSet(self, weightLimit):
         print("Called popBestCandidateSet with weightLimit " + str(weightLimit))
         self.cluster(weightLimit)
-        bestCluster = heapq.heappop(self.clusterHeap)
-        bestCandidateSet = bestCluster.bestCandidate
-        # Calculate bestCandidate from heap best, until cluster with eligible candidateSet bubbles to top
+        bestCluster = heapq.heappop(self.clusterHeap) if len(self.clusterHeap) else None
+        bestCandidateSet = bestCluster.bestCandidate if bestCluster is not None else None
         while (bestCandidateSet is None or bestCandidateSet.getWeight() > weightLimit) and len(self.clusterHeap) > 0:
             # Update best candidate set in cluster with weight limit
             if bestCandidateSet is not None:
