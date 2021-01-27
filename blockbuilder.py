@@ -42,8 +42,10 @@ class Blockbuilder():
         self.refMempool = Mempool()
         self.refMempool.fromDict(mempool.txs)
         self.selectedTxs = []
-        # 4M weight units minus header of 80 bytes
-        self.availableWeight = 4000000-4*80
+        # block limit is 4M weight units minus header of 80 bytes and coinbase of 700 wu
+        blockheaderSize = 4*80
+        coinbaseReserve = 700
+        self.availableWeight = 4000000 - blockheaderSize - coinbaseReserve
 
     def buildBlockTemplate(self):
         print("Building blocktemplate…")
