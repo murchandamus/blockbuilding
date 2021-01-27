@@ -142,6 +142,11 @@ class CandidateSet():
             return self.__hash__() == other.__hash__()
         return NotImplemented
 
+    def __lt__(self, other):
+        if self.getEffectiveFeerate() == other.getEffectiveFeerate():
+            return self.getWeight() > other.getWeight()
+        return self.getEffectiveFeerate() > other.getEffectiveFeerate()
+
     def getWeight(self):
         if self.weight < 0:
             self.weight = sum(tx.weight for tx in self.txs.values())
@@ -261,6 +266,7 @@ class Cluster():
                 continue
             # Skip descendants of lower feerate than candidate set without children
             descendant = self.txs[d]
+            descendantFeeRate = descendant.getEffectiveFeerate()
             # Ensure this is a new dictionary instead of modifying an existing
             expandedSetTxs = {descendant.txid: descendant}
             # Add ancestry
@@ -282,8 +288,8 @@ class Cluster():
         if (len(self.txs) > 99):
             self.export()
         bestCand = None # current best candidateSet
-        expandedCandidateSets = set() # candidateSets that have been evaluated
-        searchList = [] # candidates that still need to be evaluated
+        previouslyEvaluated = set() # candidateSets that have been evaluated
+        searchHeap = [] # candidates that still need to be evaluated
 
         for txid in self.eligibleTxs.keys():
             cand = self.assembleAncestry(txid)
@@ -291,35 +297,34 @@ class Cluster():
                 if bestCand is None or bestCand.getEffectiveFeerate() < cand.getEffectiveFeerate() or (bestCand.getEffectiveFeerate() == cand.getEffectiveFeerate() and bestCand.getWeight() < cand.getWeight()):
                     bestCand = cand
                     print('ancestrySet is new best candidate set in cluster ' + str(bestCand))
-                searchList.append(bestCand)
+                heapq.heappush(searchHeap, bestCand)
 
         if bestCand is not None:
             self.pruneEligibleTxs(bestCand.getEffectiveFeerate())
-            searchList.append(CandidateSet(self.eligibleTxs))
+            heapq.heappush(searchHeap, CandidateSet(self.eligibleTxs))
 
-        while len(searchList) > 0 and len(expandedCandidateSets) < 1000:
-            searchList.sort(key=lambda x: x.getEffectiveFeerate())
-            nextCS = searchList.pop()
-            if nextCS is None or len(nextCS.txs) == 0 or nextCS in expandedCandidateSets:
+        while len(searchHeap) > 0 and len(previouslyEvaluated) < 1000:
+            nextCS = heapq.heappop(searchHeap)
+            if nextCS is None or len(nextCS.txs) == 0 or nextCS in previouslyEvaluated:
                 pass
             elif nextCS.getWeight() > self.weightLimit:
-                expandedCandidateSets.add(nextCS)
+                previouslyEvaluated.add(nextCS)
             else:
-                expandedCandidateSets.add(nextCS)
+                previouslyEvaluated.add(nextCS)
                 if (nextCS.getEffectiveFeerate() > bestCand.getEffectiveFeerate() or (nextCS.getEffectiveFeerate() == bestCand.getEffectiveFeerate() and nextCS.getWeight() > bestCand.getWeight())):
                     bestCand = nextCS
                     # print('new best candidate set in cluster ' + str(bestCand))
                     self.pruneEligibleTxs(bestCand.getEffectiveFeerate())
-                    searchList.append(CandidateSet(self.eligibleTxs))
+                    heapq.heappush(searchHeap, CandidateSet(self.eligibleTxs))
                 searchCandidates = self.expandCandidateSet(nextCS, bestCand.getEffectiveFeerate())
                 for sc in searchCandidates:
                     if nextCS.getWeight() > self.weightLimit:
                         pass
-                    elif any(sc == x for x in expandedCandidateSets):
+                    elif any(sc == x for x in previouslyEvaluated):
                         pass
                     else:
-                        searchList.append(sc)
-        # print('expanded ' + str(len(expandedCandidateSets)) + ' candidateSets cluster ' + str(self.representative))
+                        heapq.heappush(searchHeap, sc)
+        # print('expanded ' + str(len(previouslyEvaluated)) + ' candidateSets cluster ' + str(self.representative))
         self.bestCandidate = bestCand
         if bestCand is not None:
             self.bestFeerate = bestCand.getEffectiveFeerate()
