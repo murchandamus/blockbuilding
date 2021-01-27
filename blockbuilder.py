@@ -261,7 +261,6 @@ class Cluster():
                 continue
             # Skip descendants of lower feerate than candidate set without children
             descendant = self.txs[d]
-            descendantFeeRate = descendant.getEffectiveFeerate()
             # Ensure this is a new dictionary instead of modifying an existing
             expandedSetTxs = {descendant.txid: descendant}
             # Add ancestry
