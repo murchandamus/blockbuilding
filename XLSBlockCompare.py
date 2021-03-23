@@ -22,8 +22,9 @@ def getBlockNumbersAndTypes(directory = r"./blockCompareTest"):
     files = os.listdir(directory)
     blockNumbers = list(dict.fromkeys([f[:f.find(".")] for f in files]))
     blockTypes = list(dict.fromkeys([f[f.find("."):] for f in files]))
-    blockNumbers.remove("")
-    blockTypes.remove('.DS_Store')
+    for x in ["",'.DS_Store', '.mempool']:
+        if x in blockTypes:
+            blockTypes.remove(x)
     return blockNumbers, blockTypes
 
 
@@ -42,6 +43,7 @@ def createBlockDic(blockNumbers, filetypes):
     return blocks
 
 def writeBlockDetailsToXSL(xlsFileName, blockDetails, blockTypes):
+    print("file name is "+str(xlsFileName))
     wb = Workbook()
     sheet1 = wb.add_sheet('Results', cell_overwrite_ok=True)
     inputs = blockDetails[next(iter(blockDetails))].weights.keys()
@@ -59,22 +61,31 @@ def writeBlockDetailsToXSL(xlsFileName, blockDetails, blockTypes):
         k=1
         print('writing Block '+ str(blockNum))
         for inp in blockTypes:
-            sheet1.write(line, k, blockDetails[blockNum].weights[inp])
-            print('line: '+ str(line)+' k: ' + str(k)+  ' write weight '+ str(blockDetails[blockNum].weights[inp]))
-            sheet1.write(line,k+1,blockDetails[blockNum].totalFees[inp])
-            print('line: '+ str(line)+' k: ' + str(k)+  ' write fee '+ str(blockDetails[blockNum].totalFees[inp]))
+            try:
+                sheet1.write(line, k, blockDetails[blockNum].weights[inp])
+                print('line: '+ str(line)+' k: ' + str(k)+  ' write weight '+ str(blockDetails[blockNum].weights[inp]))
+                sheet1.write(line,k+1,blockDetails[blockNum].totalFees[inp])
+                print('line: '+ str(line)+' k: ' + str(k)+  ' write fee '+ str(blockDetails[blockNum].totalFees[inp]))
+            except KeyError:
+                print('key error, inp:'+ str(inp) + 'blockNum: '+str(blockNum))
+                sheet1.write(line, k, 'key error'+str(inp))
+                sheet1.write(line, k+1, 'key error' + str(inp))
+
             k += 2
         print('moving to next block')
         line += 1
     wb.save(xlsFileName)
 
 if __name__ == '__main__':
-    directory = r"./blockCompareTest"
-    blockNum, blockTypes = getBlockNumbersAndTypes()
+    directory = input("which directory? ")
+    OutputFile = input("where to send results? ")
+#    directory = r"./August2018 - clustre and gbt 17022021"
+#    OutputFile = "August2018.xls"
+    blockNum, blockTypes = getBlockNumbersAndTypes(directory)
     print(blockTypes)
     BlockDic = createBlockDic(blockNum, blockTypes)
     for block in BlockDic:
         print(BlockDic[block].blockNumber)
         print(BlockDic[block].weights)
         print(BlockDic[block].totalFees)
-    writeBlockDetailsToXSL("checkXSL1234.xls", BlockDic, blockTypes)
+    writeBlockDetailsToXSL(OutputFile, BlockDic, blockTypes)
