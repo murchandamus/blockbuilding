@@ -43,9 +43,10 @@ class Blockbuilder():
         self.refMempool.fromDict(mempool.txs)
         self.selectedTxs = []
         # block limit is 4M weight units minus header of 80 bytes and coinbase of 700 wu
-        blockheaderSize = 4*80
-        coinbaseReserve = 700
-        self.availableWeight = 4000000 - blockheaderSize - coinbaseReserve
+        # blockheaderSize = 4*80
+        # coinbaseReserve = 700
+        # It turns out that biggest .gbt is only 399280
+        self.availableWeight = 3992820
 
     def buildBlockTemplate(self):
         print("Building blocktemplate…")
@@ -374,7 +375,7 @@ class Mempool():
         import_file.close()
 
     def fromTXT(self, filePath, SplitBy=" "):
-        print("Loading mempool…")
+        print("Loading mempool from " + filepath)
         with open(filePath, 'r') as import_file:
             self.blockId = Path(filePath).stem
             for line in import_file:
