@@ -375,7 +375,7 @@ class Mempool():
         import_file.close()
 
     def fromTXT(self, filePath, SplitBy=" "):
-        print("Loading mempool from " + filepath)
+        print("Loading mempool from " + filePath)
         with open(filePath, 'r') as import_file:
             self.blockId = Path(filePath).stem
             for line in import_file:

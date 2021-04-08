@@ -91,6 +91,7 @@ def printToFile(txs, fee, weight, filePath, solver, optimal, blockId):
     if blockId is not None and blockId != "":
         filePath += blockId
     filePath += '.LpSolve'
+    print('printing to: '+filePath)
     with open(filePath, 'w') as output_file:
         output_file.write('CreateNewBlockLpSolver(): fees ' + str(fee) + ' weight ' + str(
             weight) + ' solver ' + str(solver) + ' optimality ' + str(optimal) + '\n')
