@@ -104,9 +104,9 @@ def printToFile(txs, fee, weight, filePath, solver, optimal, blockId):
 
 if __name__ == '__main__':
     mempool = bb.Mempool()
-    mempool.fromTXT(r'./data/data example/123.mempool')
+    mempool.fromTXT(r'./data/Dec17 sample/0000000000000000002d60720c6b9f5749ec01509844d05de1db08ca1ef06b52.mempool')
     solver = "CBC"
-    timeLim = 1000
+    timeLim = 1000000
     sizeLim = 4000000
     lp_fee, lp_weight, txs, isOpt = LinearProgrammingSolve(mempool.txs, sizeLim ,solver, timeLim)
     block = create_block(txs)
