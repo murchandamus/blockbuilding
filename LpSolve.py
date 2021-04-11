@@ -1,6 +1,7 @@
 from ortools.linear_solver import pywraplp
 import blockbuilder as bb
 
+
 def LinearProgrammingSolve(txs, max_size, slover_choice='CBC', time_lim=5000):
     # Instantiate a solver, SAT is better by very very slow
     if slover_choice == 'CBC':

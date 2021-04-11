@@ -46,7 +46,8 @@ class Blockbuilder():
         # blockheaderSize = 4*80
         # coinbaseReserve = 700
         # It turns out that biggest .gbt is only 399280
-        self.availableWeight = 3992820
+        self.weightLimit = 3992820
+        self.availableWeight = self.weightLimit
 
     def buildBlockTemplate(self):
         print("Building blocktemplate…")
@@ -76,7 +77,9 @@ class Blockbuilder():
         with open(filePath, 'w') as output_file:
             print(self.selectedTxs)
             selected = CandidateSet({txid: self.refMempool.txs[txid] for txid in self.selectedTxs})
-            output_file.write('CreateNewBlockByClusters(): fees ' + str(selected.getFees()) + ' weight ' + str(selected.getWeight()) + '\n')
+            output_file.write('CreateNewBlockByClusters(): fees ' + str(selected.getFees()) +
+                              ' weight ' + str(selected.getWeight()) + ' size limit ' +
+                              str(self.weightLimit) +'\n')
 
             for tx in self.selectedTxs:
                 output_file.write(tx + '\n')

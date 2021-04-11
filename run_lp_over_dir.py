@@ -9,7 +9,7 @@ if __name__ == '__main__':
     file_dir = input("dir? ") or r"data/data_example"
 #    mempool.fromTXT(r'./data/Dec17 sample/0000000000000000002d60720c6b9f5749ec01509844d05de1db08ca1ef06b52.mempool')
     timeLim = int(input("time lim? ") or 10000)
-    max_size = int(input("block size lim? ") or 4000000)
+    max_size = int(input("block size lim? ") or 3992820)
     Solver = input("which solver? (CBC/SAT) ") or "CBC"
     ResFile = input("result file? ") or "testResults"
     LimitOnNumberOfBlocks = int(input("Lin num of blocks? 0 for no ") or 0)
@@ -53,6 +53,9 @@ if __name__ == '__main__':
             sheet1.write(j, 8, opt)
 
             block_file = open(os.path.join(file_dir, str(block_num) + ".LpBlock"), 'w')
+            block_file.write("LinearProgrammingSolve(): fees " +str(int(LP_fee))+ " weight " +
+                             str(int(LP_size)) + " solver " + str(Solver) + " time limit " + str(timeLim)
+                             + " size limit " + str(max_size) + '\n')
             for line in New_Block:
                 block_file.write(line + '\n')
             block_file.close()
