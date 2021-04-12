@@ -79,8 +79,8 @@ def writeBlockDetailsToXSL(xlsFileName, blockDetails, blockTypes):
 if __name__ == '__main__':
 #    directory = input("which directory? ")
 #    OutputFile = input("where to send results? ")
-    directory = r"./May2020"
-    OutputFile = "May2020_new.xls"
+    directory = input("dir?")
+    OutputFile = input("output?")
     blockNum, blockTypes = getBlockNumbersAndTypes(directory)
     print(blockTypes)
     BlockDic = createBlockDic(blockNum, blockTypes)
