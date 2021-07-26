@@ -17,6 +17,8 @@ def getBlockDetailsFromFile(fileLocation):
         return totalFee, weight
     except FileNotFoundError:
         print("No such file")
+    except:
+        print("some thing else is wrong with " + str(fileLocation))
 
 def getBlockNumbersAndTypes(directory = r"./blockCompareTest"):
     files = os.listdir(directory)

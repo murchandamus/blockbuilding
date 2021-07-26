@@ -109,7 +109,7 @@ if __name__ == '__main__':
     solver = "CBC"
     timeLim = 1000000
     sizeLim = 4000000
-    lp_fee, lp_weight, txs, isOpt = LinearProgrammingSolve(mempool.txs, sizeLim ,solver, timeLim)
+    lp_fee, lp_weight, txs, isOpt = LinearProgrammingSolve(mempool.txs, sizeLim, solver, timeLim)
     block = create_block(txs)
     printToFile(block, lp_fee, lp_weight, 'test_LP/', solver, isOpt, mempool.blockId)
 
