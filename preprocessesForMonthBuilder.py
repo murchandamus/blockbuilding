@@ -22,10 +22,14 @@ def createAllowListFile(directory, resultFile):
         if file.endswith('.gbt'):
             print("looking at: "+file)
             with open(os.path.join(directory,file), 'r') as import_file:
+                if file.find('_')!=-1:
+                    height = file[0:7]
+                else:
+                    height = 'height not found'
                 for line in import_file:
                     if 'txid' in line:
                         continue
-                    line = line.rstrip('\n')
+                    line = line.rstrip('\n')+' '+height
                     txSet.add(line)
             import_file.close()
     resFile = open(os.path.join(directory, resultFile),'a')
