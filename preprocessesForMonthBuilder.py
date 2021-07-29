@@ -15,9 +15,26 @@ def addBlockHeightForDirectory(directory):
             height = str(md.getBlockHeight(file[0:file.find(r'.')]))
             addBlockHeightToFileName(directory, file, height)
 
-
-
+def createAllowListFile(directory, resultFile):
+    print("start set")
+    txSet = set()
+    for file in os.listdir(directory):
+        if file.endswith('.gbt'):
+            print("looking at: "+file)
+            with open(os.path.join(directory,file), 'r') as import_file:
+                for line in import_file:
+                    if 'txid' in line:
+                        continue
+                    line = line.rstrip('\n')
+                    txSet.add(line)
+            import_file.close()
+    resFile = open(os.path.join(directory, resultFile),'a')
+    for tx in txSet:
+        resFile.write(tx+'\n')
+    resFile.close()
+    return txSet
 
 if __name__ == '__main__':
-    directory = input("dir? ")
-    addBlockHeightForDirectory(directory)
+    directory = "/Users/clara/Documents/GitHub/blockbuilding/data/data_example"
+    #addBlockHeightForDirectory(directory)
+    createAllowListFile(directory, 'test_res_file.txt')
