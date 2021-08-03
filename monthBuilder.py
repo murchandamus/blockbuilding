@@ -1,6 +1,6 @@
 import blockbuilder
 import os
-import os.path import isfile, join
+from os.path import isfile, join
 
 # TODO:
 ## Identify the lowest block-id (i.e. height)
@@ -19,14 +19,23 @@ import os.path import isfile, join
 class Monthbuilder():
     def __init__(self, monthPath):
         self.pathToMonth = monthPath
-        self.globalMempool = Mempool()
+        self.globalMempool = blockbuilder.Mempool()
         self.confirmedList = set()
-        self.allowList = AllowList()
+        self.allowList = set()
         self.height = -1
 
     def loadAllowList(self):
-        ## Assume that there is exactly one in the folder
-        ## TODO: Allowlist is just a text file with one transaction id on every line, e.g. '2020-08.allow'
+        files = os.listdir(self.pathToMonth)
+        print('Looking for allowList')
+        for f in files:
+            print('file in folder: ' + f)
+            if f.endswith('.allow'):
+                with open(os.path.join(self.pathToMonth, f), 'r') as import_allow_list:
+                    for line in import_allow_list:
+                        self.allowList.add(line.rstrip('\n'))
+                import_allow_list.close()
+        if len(self.allowList) == 0:
+            raise ValueError('Allowed list empty')
 
     def getNextBlockHeight(self):
         ## Assume that there are mempool files in folder and they are prefixed with a _seven_ digit block height
@@ -60,7 +69,7 @@ def main(argv):
         sys.exit(2)
 
     startTime = time.time()
-    mempool = Mempool()
+    mempool = blockbuilder.Mempool()
     mempool.fromTXT(mempoolfilepath)
     bb = Blockbuilder(mempool)
     bb.buildBlockTemplate()

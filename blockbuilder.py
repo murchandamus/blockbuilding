@@ -50,7 +50,7 @@ class Blockbuilder():
         self.availableWeight = self.weightLimit
 
     def buildBlockTemplate(self):
-        print("Building blocktemplate…")
+        print("Building blocktemplate...")
         while len(self.mempool.txs) > 0 and self.availableWeight > 0:
             print("Weight left: " + str(self.availableWeight))
             bestCandidateSet = self.mempool.popBestCandidateSet(self.availableWeight)
@@ -394,7 +394,7 @@ class Mempool():
         import_file.close()
         print("Mempool loaded")
         # backfill descendants from parents
-        print("Backfill descendants from parents…")
+        print("Backfill descendants from parents...")
         actualParents = {}
         for tx in self.txs.values():
             nonParentAncestors = set()
