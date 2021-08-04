@@ -7,10 +7,9 @@ import multiprocessing
 
 def readUrl(Id, type):
     if type=='block':
-        url = "https://www.blockchain.com/btc/block/" + str(Id)
+        url = r"https://www.blockchain.com/btc/block/" + str(Id)
     elif type=='tx':
-        url = "https://www.blockchain.com/btc/tx/" + str(Id)
-        print(url)
+        url = r"https://www.blockchain.com/btc/tx/" + str(Id)
     ssl._create_default_https_context = ssl._create_unverified_context  # specific for mac issues
     try:
         fp = urllib.request.urlopen(url)

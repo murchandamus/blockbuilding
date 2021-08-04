@@ -29,10 +29,10 @@ def createAllowListFile(directory, resultFile):
                 for line in import_file:
                     if 'txid' in line:
                         continue
-                    line = line.rstrip('\n')+' '+height
+                    line = line.rstrip('\n')#+' '+height
                     txSet.add(line)
             import_file.close()
-    resFile = open(os.path.join(directory, resultFile),'a')
+    resFile = open(os.path.join(directory, resultFile+".allow"),'a')
     for tx in txSet:
         resFile.write(tx+'\n')
     resFile.close()
@@ -51,7 +51,7 @@ def getCoinbaseSizes(directory):
 
 
 if __name__ == '__main__':
-    directory = "/Users/clara/Documents/GitHub/blockbuilding/data/data_example"
+    directory = "/Users/clara/Documents/GitHub/blockbuilding/data/data_example/test"
     #addBlockHeightForDirectory(directory)
-#    createAllowListFile(directory, 'test_res_file.txt')
-    print("dict "+str(getCoinbaseSizes(directory)))
+    createAllowListFile(directory, 'allow list')
+    #print("dict "+str(getCoinbaseSizes(directory)))
