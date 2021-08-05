@@ -81,7 +81,9 @@ class Monthbuilder():
             raise FileNotFoundError('Coinbase file not found')
 
     def runBlockWithGlobalMempool(self):
-        builder = bb.Blockbuilder(self.globalMempool) # TODO: use coinbase size here
+        coinbaseSizeForCurrentBlock = self.coinbaseSizes[self.height]
+        weightAllowance = 4_000_000 - coinbaseSizeForCurrentBlock
+        builder = bb.Blockbuilder(self.globalMempool, weightAllowance) # TODO: use coinbase size here
         selectedTxs = builder.buildBlockTemplate()
         self.usedTxSet = self.usedTxSet.union(set(selectedTxs))
         builder.outputBlockTemplate(height) # TODO: Height+blockhash?
