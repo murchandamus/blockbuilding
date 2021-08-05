@@ -37,7 +37,7 @@ def main(argv):
     print('Elapsed time: ' + str(endTime - startTime))
 
 class Blockbuilder():
-    def __init__(self, mempool):
+    def __init__(self, mempool, weightLimit=3992820):
         self.mempool = mempool
         self.refMempool = Mempool()
         self.refMempool.fromDict(mempool.txs)
@@ -46,7 +46,7 @@ class Blockbuilder():
         # blockheaderSize = 4*80
         # coinbaseReserve = 700
         # It turns out that biggest .gbt is only 399280
-        self.weightLimit = 3992820
+        self.weightLimit = weightLimit
         self.availableWeight = self.weightLimit
 
     def buildBlockTemplate(self):
