@@ -24,6 +24,7 @@ class Monthbuilder():
         self.allowSet = set()
         self.usedTxSet = set()
         self.height = -1
+        self.coinbaseSizes = {}
 
     def loadAllowList(self):
         files = os.listdir(self.pathToMonth)
@@ -67,6 +68,17 @@ class Monthbuilder():
 
         if fileFound == 0:
             raise FileNotFoundError("Mempool not found")
+
+    def loadCoinbaseSizes(self):
+        for file in os.listdir(self.pathToMonth):
+            if file.endswith('.coinbases'):
+                with open(os.path.join(self.pathToMonth, file), 'r') as coinbaseSizes:
+                    for line in coinbaseSizes:
+                        lineItems = line.split[' ']
+                        self.coinbaseSizes[lineItems[0]] = lineItems[1]
+                coinbaseSizes.close()
+        if len(self.coinbaseSizes) == 0:
+            raise FileNotFoundError('Coinbase file not found')
 
     def runBlockWithGlobalMempool(self):
         builder = bb.Blockbuilder(self.globalMempool) # TODO: use coinbase size here
