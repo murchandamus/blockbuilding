@@ -3,6 +3,7 @@ import os
 from os.path import isfile, join
 
 # TODO:
+## load AllowList - done
 ## Identify the lowest block-id (i.e. height) - done
 ## load mempool of for the first block
 ## filter to txs in whitelist
@@ -20,9 +21,8 @@ class Monthbuilder():
     def __init__(self, monthPath):
         self.pathToMonth = monthPath
         self.globalMempool = bb.Mempool()
-        self.confirmedList = set()
-        self.allowList = set()
-        self.usedTxList = set()
+        self.allowSet = set()
+        self.usedTxSet = set()
         self.height = -1
 
     def loadAllowList(self):
@@ -31,15 +31,15 @@ class Monthbuilder():
             if f.endswith('.allow'):
                 with open(os.path.join(self.pathToMonth, f), 'r') as import_allow_list:
                     for line in import_allow_list:
-                        self.allowList.add(line.rstrip('\n'))
+                        self.allowSet.add(line.rstrip('\n'))
                 import_allow_list.close()
-        if len(self.allowList) == 0:
+        if len(self.allowSet) == 0:
             raise ValueError('Allowed list empty')
 
 
     def updateUsedList(self, txList):
         newTxSet = set(txList)
-        self.usedTxList = self.usedTxList.union(newTxSet)
+        self.usedTxSet = self.usedTxSet.union(newTxSet)
 
     def removeSetOfTxsFromMempool(self, txsSet, mempool):
         try:
@@ -59,8 +59,8 @@ class Monthbuilder():
                 print("block txs"+str(blockMempool.txs))
                 blockTxsSet = set([k for k in blockMempool.txs.keys()])
                 print("block tx set"+str(blockTxsSet))
-                txsToRemove = blockTxsSet.difference(self.allowList)
-                print("allow list: "+str(self.allowList))
+                txsToRemove = blockTxsSet.difference(self.allowSet)
+                print("allow list: "+str(self.allowSet))
                 print("txs not in allow set"+str(txsToRemove))
                 cleanNewMempoolTxs = self.removeSetOfTxsFromMempool(txsToRemove, blockMempool)
                 print("txs after cleaning not allowed "+str(cleanNewMempoolTxs.txs.keys()))
@@ -69,9 +69,9 @@ class Monthbuilder():
                     print("considering " + str(k))
                     print("adding "+str(k))
                     self.globalMempool.txs[k] = blockMempool.txs[k]
-                print("used list: "+str(self.usedTxList))
+                print("used list: "+str(self.usedTxSet))
                 for k in list(self.globalMempool.txs.keys()):
-                    if k in self.usedTxList:
+                    if k in self.usedTxSet:
                         print("deleting "+str(k))
                         self.globalMempool.txs.pop(k)
         print(self.globalMempool.txs.keys())
