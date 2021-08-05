@@ -26,7 +26,7 @@ class Monthbuilder():
         self.height = -1
         self.coinbaseSizes = {}
 
-    def loadAllowList(self):
+    def loadAllowSet(self):
         files = os.listdir(self.pathToMonth)
         for f in files:
             if f.endswith('.allow'):
@@ -36,7 +36,7 @@ class Monthbuilder():
                 import_allow_list.close()
         if len(self.allowSet) == 0:
             raise ValueError('Allowed list empty')
-
+        print('allowSet: ' + str(self.allowSet))
 
     def updateUsedList(self, txList):
         newTxSet = set(txList)
@@ -59,12 +59,18 @@ class Monthbuilder():
                 blockMempool.fromTXT(os.path.join(self.pathToMonth, file))
                 blockTxsSet = set([k for k in blockMempool.txs.keys()]) # TODO: should this just be 'set(keys())'?
                 txsToRemove = blockTxsSet.difference(self.allowSet)
-                cleanNewMempoolTxs = self.removeSetOfTxsFromMempool(txsToRemove, blockMempool)
-                for k in cleanNewMempoolTxs.txs.keys():
+                print("txsToRemove: " + str(txsToRemove))
+                if len(txsToRemove) > 0:
+                    print("block txs before pruning for allow set " + str(blockTxsSet))
+                    blockMempool = self.removeSetOfTxsFromMempool(txsToRemove, blockMempool)
+                    print("block txs after pruning for allow set " + str(blockMempool.txs.keys()))
+                for k in blockMempool.txs.keys():
                     self.globalMempool.txs[k] = blockMempool.txs[k]
                 for k in list(self.globalMempool.txs.keys()):
                     if k in self.usedTxSet:
                         self.globalMempool.txs.pop(k)
+
+        print("Global Mempool after loading block: " + str(self.globalMempool.txs.keys()))
 
         if fileFound == 0:
             raise Exception("Mempool not found")
@@ -82,16 +88,17 @@ class Monthbuilder():
 
     def runBlockWithGlobalMempool(self):
         coinbaseSizeForCurrentBlock = self.coinbaseSizes[self.height]
-        weightAllowance = 4000000 - coinbaseSizeForCurrentBlock
+        weightAllowance = 4000000 - int(coinbaseSizeForCurrentBlock)
         builder = bb.Blockbuilder(self.globalMempool, weightAllowance) # TODO: use coinbase size here
         selectedTxs = builder.buildBlockTemplate()
+        print("selectedTxs: " + str(selectedTxs))
         self.usedTxSet = self.usedTxSet.union(set(selectedTxs))
-        builder.outputBlockTemplate(height) # TODO: Height+blockhash?
+        builder.outputBlockTemplate(self.height) # TODO: Height+blockhash?
 
     def getNextBlockHeight(self):
         ## Assume that there are mempool files in folder and they are prefixed with a _seven_ digit block height
         if self.height > 0:
-            self.height = self.height+1
+            self.height = int(self.height) + 1
             return self.height
         else:
             dirContent = os.listdir(self.pathToMonth)
@@ -99,12 +106,12 @@ class Monthbuilder():
             onlymempool.sort()
             if 0 == len(onlymempool):
                 raise Exception("No mempool files found")
-            self.height = onlymempool[0][0:6]
+            self.height = int(onlymempool[0][0:6])
             return self.height
 
 if __name__ == '__main__':
     mb = Monthbuilder(".")
-    mb.loadAllowList()
+    mb.loadAllowSet()
     mb.loadCoinbaseSizes() # TODO
     while(True):
         mb.getNextBlockHeight()
@@ -117,5 +124,6 @@ if __name__ == '__main__':
         if blockfileName == '':
             print('Height not found, done')
             break
+        print("Starting block: " + blockfileName)
         mb.loadBlockMempool(blockfileName)
         mb.runBlockWithGlobalMempool()

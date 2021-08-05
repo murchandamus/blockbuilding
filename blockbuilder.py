@@ -76,10 +76,15 @@ class Blockbuilder():
         filePath += '.byclusters'
         with open(filePath, 'w') as output_file:
             print(self.selectedTxs)
-            selected = CandidateSet({txid: self.refMempool.txs[txid] for txid in self.selectedTxs})
-            output_file.write('CreateNewBlockByClusters(): fees ' + str(selected.getFees()) +
-                              ' weight ' + str(selected.getWeight()) + ' size limit ' +
-                              str(self.weightLimit) +'\n')
+            if len(self.selectedTxs) > 0:
+                selected = CandidateSet({txid: self.refMempool.txs[txid] for txid in self.selectedTxs})
+                output_file.write('CreateNewBlockByClusters(): fees ' + str(selected.getFees()) +
+                                  ' weight ' + str(selected.getWeight()) + ' size limit ' +
+                                  str(self.weightLimit) +'\n')
+            else:
+                output_file.write('CreateNewBlockByClusters(): fees ' + '0' +
+                                  ' weight ' + '0' + ' size limit ' +
+                                  str(self.weightLimit) +'\n')
 
             for tx in self.selectedTxs:
                 output_file.write(tx + '\n')
@@ -409,6 +414,7 @@ class Mempool():
             for p in tx.parents:
                 self.txs[p].descendants.append(tx.txid)
         print("Descendants backfilled")
+        print(str(len(self.txs))+ " txs loaded")
 
     def getTx(self, txid):
         return self.txs[txid]
