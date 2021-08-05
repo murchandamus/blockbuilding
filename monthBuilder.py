@@ -67,22 +67,22 @@ class Monthbuilder():
                         self.globalMempool.txs.pop(k)
 
         if fileFound == 0:
-            raise FileNotFoundError("Mempool not found")
+            raise Exception("Mempool not found")
 
     def loadCoinbaseSizes(self):
         for file in os.listdir(self.pathToMonth):
             if file.endswith('.coinbases'):
                 with open(os.path.join(self.pathToMonth, file), 'r') as coinbaseSizes:
                     for line in coinbaseSizes:
-                        lineItems = line.split[' ']
+                        lineItems = line.split(' ')
                         self.coinbaseSizes[lineItems[0]] = lineItems[1]
                 coinbaseSizes.close()
         if len(self.coinbaseSizes) == 0:
-            raise FileNotFoundError('Coinbase file not found')
+            raise Exception('Coinbase file not found')
 
     def runBlockWithGlobalMempool(self):
         coinbaseSizeForCurrentBlock = self.coinbaseSizes[self.height]
-        weightAllowance = 4_000_000 - coinbaseSizeForCurrentBlock
+        weightAllowance = 4000000 - coinbaseSizeForCurrentBlock
         builder = bb.Blockbuilder(self.globalMempool, weightAllowance) # TODO: use coinbase size here
         selectedTxs = builder.buildBlockTemplate()
         self.usedTxSet = self.usedTxSet.union(set(selectedTxs))
@@ -97,19 +97,21 @@ class Monthbuilder():
             dirContent = os.listdir(self.pathToMonth)
             onlymempool =  [f for f in dirContent if f.endswith('.mempool')]
             onlymempool.sort()
-            self.height = onlymempool[0][0:7]
+            if 0 == len(onlymempool):
+                raise Exception("No mempool files found")
+            self.height = onlymempool[0][0:6]
             return self.height
 
 if __name__ == '__main__':
-    mb = Monthbuilder("./data/data_example/test")
+    mb = Monthbuilder(".")
     mb.loadAllowList()
     mb.loadCoinbaseSizes() # TODO
     while(True):
         mb.getNextBlockHeight()
         blockfileName = ''
-        files = os.listdir(self.pathToMonth)
+        files = os.listdir(mb.pathToMonth)
         for f in files:
-            if f.startswith(str(height)):
+            if f.startswith(str(mb.height)):
                 blockfileName = f.split('.')[0]
                 break
         if blockfileName == '':

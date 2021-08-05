@@ -3,8 +3,8 @@ import blockMetaData as md
 
 
 def addBlockHeightToFileName(fileLocation, fileName, height):
-    if len(height) < 7:
-        height = '0'*(7-len(height))+height
+    if len(height) < 6:
+        height = '0'*(6-len(height))+height
     os.rename(fileLocation+r'/'+fileName, fileLocation+ r'/' + height +'_' +fileName)
 
 
@@ -23,7 +23,7 @@ def createAllowListFile(directory, resultFile):
             print("looking at: "+file)
             with open(os.path.join(directory,file), 'r') as import_file:
                 if file.find('_')!=-1:
-                    height = file[0:7]
+                    height = file[0:6]
                 else:
                     height = 'height not found'
                 for line in import_file:
