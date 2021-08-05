@@ -69,7 +69,7 @@ class Blockbuilder():
     def outputBlockTemplate(self, blockId=""):
         filePath = "results/"
         if blockId is not None and blockId != "":
-            filePath += blockId + '-'
+            filePath += str(blockId) + '-'
         date_now = datetime.datetime.now()
         filePath += date_now.isoformat()
 
@@ -443,6 +443,7 @@ class Mempool():
             heapq.heappush(self.clusterHeap, localCluster)
 
         print('finished cluster building')
+        print("clusters: " + str(self.clusterHeap))
         self.txsToBeClustered = {}
         return self.clusters
 

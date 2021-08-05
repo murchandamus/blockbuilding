@@ -69,6 +69,7 @@ class Monthbuilder():
                 for k in list(self.globalMempool.txs.keys()):
                     if k in self.usedTxSet:
                         self.globalMempool.txs.pop(k)
+                self.globalMempool.fromDict(self.globalMempool.txs, blockId)
 
         print("Global Mempool after loading block: " + str(self.globalMempool.txs.keys()))
 
@@ -81,15 +82,18 @@ class Monthbuilder():
                 with open(os.path.join(self.pathToMonth, file), 'r') as coinbaseSizes:
                     for line in coinbaseSizes:
                         lineItems = line.split(' ')
-                        self.coinbaseSizes[lineItems[0]] = lineItems[1]
+                        self.coinbaseSizes[int(lineItems[0])] = lineItems[1].rstrip('\n')
                 coinbaseSizes.close()
+        print("CoinbaseSizes: " + str(self.coinbaseSizes))
         if len(self.coinbaseSizes) == 0:
             raise Exception('Coinbase file not found')
 
     def runBlockWithGlobalMempool(self):
         coinbaseSizeForCurrentBlock = self.coinbaseSizes[self.height]
         weightAllowance = 4000000 - int(coinbaseSizeForCurrentBlock)
+        print("Global Mempool before BB(): " + str(self.globalMempool))
         builder = bb.Blockbuilder(self.globalMempool, weightAllowance) # TODO: use coinbase size here
+        print("Block Mempool after BB(): " + str(builder.mempool.txs.keys()))
         selectedTxs = builder.buildBlockTemplate()
         print("selectedTxs: " + str(selectedTxs))
         self.usedTxSet = self.usedTxSet.union(set(selectedTxs))
