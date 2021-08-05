@@ -41,24 +41,41 @@ class Monthbuilder():
         newTxSet = set(txList)
         self.usedTxList = self.usedTxList.union(newTxSet)
 
+    def removeSetOfTxsFromMempool(self, txsSet, mempool):
+        try:
+            for k in txsSet:
+                del mempool.txs[k]
+        except KeyError:
+            print("tx to delete not found" + k)
+        return mempool
+
     def loadBlockMempool(self, blockId):
         FileFound = 0
         for file in os.listdir(self.pathToMonth):
             if file.endswith(blockId+'.mempool'):
                 FileFound = 1
-                tempMempool = bb.Mempool()
-                print(os.path.join(self.pathToMonth, file))
-                tempMempool.fromTXT(os.path.join(self.pathToMonth, file))
-                print('size of mempool is: '+str([k for k in tempMempool.txs.keys()]))
-                tempMempoolSet = set([k for k in tempMempool.txs.keys()])
-                print(tempMempoolSet)
-                tempMempoolSet.update([k for k in self.globalMempool.txs.keys()])
-                print(tempMempoolSet)
-                tempMempoolSet.difference_update(self.usedTxList)
-                print(tempMempoolSet)
-                tempMempoolSet.intersection_update(self.allowList)
-                print("tamp mempool set is: ")
-                print(tempMempoolSet)
+                blockMempool = bb.Mempool()
+                blockMempool.fromTXT(os.path.join(self.pathToMonth, file))
+                print("block txs"+str(blockMempool.txs))
+                blockTxsSet = set([k for k in blockMempool.txs.keys()])
+                print("block tx set"+str(blockTxsSet))
+                txsToRemove = blockTxsSet.difference(self.allowList)
+                print("allow list: "+str(self.allowList))
+                print("txs not in allow set"+str(txsToRemove))
+                cleanNewMempoolTxs = self.removeSetOfTxsFromMempool(txsToRemove, blockMempool)
+                print("txs after cleaning not allowed "+str(cleanNewMempoolTxs.txs.keys()))
+                print("current global mempool "+str(self.globalMempool.txs.keys()))
+                for k in cleanNewMempoolTxs.txs.keys():
+                    print("considering " + str(k))
+                    print("adding "+str(k))
+                    self.globalMempool.txs[k] = blockMempool.txs[k]
+                print("used list: "+str(self.usedTxList))
+                for k in list(self.globalMempool.txs.keys()):
+                    if k in self.usedTxList:
+                        print("deleting "+str(k))
+                        self.globalMempool.txs.pop(k)
+        print(self.globalMempool.txs.keys())
+
         if FileFound == 0:
             raise FileNotFoundError("Mempool not found")
 
@@ -106,4 +123,7 @@ def main(argv):
 if __name__ == '__main__':
     mb = Monthbuilder("./data/data_example/test")
     mb.loadAllowList()
-    mb.loadBlockMempool('123456')
+    mb.globalMempool.fromTXT(os.path.join(mb.pathToMonth, 'oldMempool.mempool'))
+    mb.usedTxList.add('10')
+    mb.usedTxList.add('99999')
+    mb.loadBlockMempool('test_block')
