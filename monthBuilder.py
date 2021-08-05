@@ -50,35 +50,29 @@ class Monthbuilder():
         return mempool
 
     def loadBlockMempool(self, blockId):
-        FileFound = 0
+        fileFound = 0
         for file in os.listdir(self.pathToMonth):
             if file.endswith(blockId+'.mempool'):
-                FileFound = 1
+                fileFound = 1
                 blockMempool = bb.Mempool()
                 blockMempool.fromTXT(os.path.join(self.pathToMonth, file))
-                print("block txs"+str(blockMempool.txs))
-                blockTxsSet = set([k for k in blockMempool.txs.keys()])
-                print("block tx set"+str(blockTxsSet))
+                blockTxsSet = set([k for k in blockMempool.txs.keys()]) # TODO: should this just be 'set(keys())'?
                 txsToRemove = blockTxsSet.difference(self.allowSet)
-                print("allow list: "+str(self.allowSet))
-                print("txs not in allow set"+str(txsToRemove))
                 cleanNewMempoolTxs = self.removeSetOfTxsFromMempool(txsToRemove, blockMempool)
-                print("txs after cleaning not allowed "+str(cleanNewMempoolTxs.txs.keys()))
-                print("current global mempool "+str(self.globalMempool.txs.keys()))
                 for k in cleanNewMempoolTxs.txs.keys():
-                    print("considering " + str(k))
-                    print("adding "+str(k))
                     self.globalMempool.txs[k] = blockMempool.txs[k]
-                print("used list: "+str(self.usedTxSet))
                 for k in list(self.globalMempool.txs.keys()):
                     if k in self.usedTxSet:
-                        print("deleting "+str(k))
                         self.globalMempool.txs.pop(k)
-        print(self.globalMempool.txs.keys())
 
-        if FileFound == 0:
+        if fileFound == 0:
             raise FileNotFoundError("Mempool not found")
 
+    def runBlockWithGlobalMempool(self):
+        builder = bb.Blockbuilder(self.globalMempool) # TODO: use coinbase size here
+        selectedTxs = builder.buildBlockTemplate()
+        self.usedTxSet = self.usedTxSet.union(set(selectedTxs))
+        builder.outputBlockTemplate(height) # TODO: Height+blockhash?
 
     def getNextBlockHeight(self):
         ## Assume that there are mempool files in folder and they are prefixed with a _seven_ digit block height
@@ -92,38 +86,20 @@ class Monthbuilder():
             self.height = onlymempool[0][0:7]
             return self.height
 
-def main(argv):
-    mempoolfilepath = ''
-    try:
-        opts, args = getopt.getopt(argv, "hm:", ["mempoolfile="])
-    except getopt.GetoptError:
-        print ('blockbuilder.py -m <mempoolfile>')
-        sys.exit(2)
-    for opt, arg in opts:
-        if opt == '-h':
-            print ('blockbuilder.py -m <mempoolfile>')
-            sys.exit()
-        elif opt in ("-m", "--mempoolfile"):
-            mempoolfilepath = arg
-        print ('Mempool file is "', mempoolfilepath)
-
-    if mempoolfilepath is '':
-        print ('Missing mempool file path: blockbuilder.py -m <mempoolfile>')
-        sys.exit(2)
-
-    startTime = time.time()
-    mempool = blockbuilder.Mempool()
-    mempool.fromTXT(mempoolfilepath)
-    bb = Blockbuilder(mempool)
-    bb.buildBlockTemplate()
-    bb.outputBlockTemplate(mempool.blockId)
-    endTime = time.time()
-    print('Elapsed time: ' + str(endTime - startTime))
-
 if __name__ == '__main__':
     mb = Monthbuilder("./data/data_example/test")
     mb.loadAllowList()
-    mb.globalMempool.fromTXT(os.path.join(mb.pathToMonth, 'oldMempool.mempool'))
-    mb.usedTxList.add('10')
-    mb.usedTxList.add('99999')
-    mb.loadBlockMempool('test_block')
+    mb.loadCoinbaseSizes() # TODO
+    while(True):
+        mb.getNextBlockHeight()
+        blockfileName = ''
+        files = os.listdir(self.pathToMonth)
+        for f in files:
+            if f.startswith(str(height)):
+                blockfileName = f.split('.')[0]
+                break
+        if blockfileName == '':
+            print('Height not found, done')
+            break
+        mb.loadBlockMempool(blockfileName)
+        mb.runBlockWithGlobalMempool()
