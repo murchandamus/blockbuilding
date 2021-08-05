@@ -13,6 +13,14 @@ class TestmonthBuilder(unittest.TestCase):
         m.loadBlockMempool("test_block")
         print()
 
+    def test_global_mempool_persistence(self):
+        print("Not implemented")
+
+    def test_pruning_via_allow_list(self):
+        print("Not implemented")
+
+    def test_pruning_via_used_list(self):
+        print("Not implemented")
 
 if __name__ == '__main__':
     unittest.main()
