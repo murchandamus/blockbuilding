@@ -14,17 +14,17 @@ def addBlockHeightForDirectory(directory):
             blockId = file[0:file.find(r'.')]
             height = -1
             if blockId in blockHeights:
-                height = blockHeights[blockId]
+                height = int(blockHeights[blockId])
             else:
-                blockData = str(md.getBlockInfo(blockId))
-                height = blockData['height']
+                blockData = md.getBlockInfo(blockId)
+                height = int(blockData['height'])
                 blockHeights[blockId] = height
             if height < 0:
                 raise Exception("height for " + blockId + " not found")
             addBlockHeightToFileName(directory, file, str(height))
 
 def createAllowListFile(directory, resultFile):
-    print("start set")
+    print("start allowset")
     txSet = set()
     for file in os.listdir(directory):
         if file.endswith('.block'):
@@ -35,7 +35,8 @@ def createAllowListFile(directory, resultFile):
                 else:
                     height = 'height not found'
                 for line in import_file:
-                    if 'txid' in line:
+                    # Skip header line in block file
+                    if 'fees' in line:
                         continue
                     line = line.rstrip('\n')#+' '+height
                     txSet.add(line)
@@ -46,19 +47,26 @@ def createAllowListFile(directory, resultFile):
     resFile.close()
     return txSet
 
-def getCoinbaseSizes(directory):
-    coinbaseSizeDict = {}
+def createCoinbaseWeightsDict(directory, resultFile):
+    coinbaseWeights = {}
     for file in os.listdir(directory):
         if file.endswith('.block'):
-            blockNum = file[file.find('_')+1:file.find('.')]
+            print("Looking for coinbase weight for " + file)
+            height = file[0:file.find('_')]
+            print("height is " + str(height))
             with open(os.path.join(directory, file), 'r') as import_file:
                 import_file.readline()
-                coinbaseTxId = import_file.readline()
-                coinbaseSizeDict[blockNum] = md.getTxWeight(coinbaseTxId)
-    return coinbaseSizeDict
+                coinbaseTxId = import_file.readline().rstrip('\n')
+                coinbaseWeights[height] = md.getTxWeight(coinbaseTxId)
+    resFile = open(os.path.join(directory, resultFile+".coinbases"),'w')
+    for height, weight in coinbaseWeights.items():
+        resFile.write(str(height) + ' ' + str(weight) + '\n')
+    resFile.close()
+    return coinbaseWeights
 
 if __name__ == '__main__':
-    directory = "/Users/clara/Documents/GitHub/blockbuilding/data/data_example/test"
-    #addBlockHeightForDirectory(directory)
-    createAllowListFile(directory, 'allow list')
+    directory = '.'
+    addBlockHeightForDirectory(directory)
+    createAllowListFile(directory, 'txset')
+    createCoinbaseWeightsDict(directory, 'weight')
     #print("dict "+str(getCoinbaseSizes(directory)))
