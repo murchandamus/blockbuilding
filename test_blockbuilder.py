@@ -210,5 +210,32 @@ class TestBlockbuilder(unittest.TestCase):
         builder = blockbuilder.Blockbuilder(mempool)
         selectedTxs = builder.buildBlockTemplate()
 
+    def test_drop_tx(self):
+        mempool = blockbuilder.Mempool()
+        mempool.fromDict(self.testDict)
+        self.assertIn('qrs', mempool.txs.keys())
+        mempool.dropTx('qrs')
+        self.assertNotIn('qrs', mempool.txs.keys())
+        self.assertNotIn('qrs', mempool.txs['nop'].descendants)
+        self.assertIn('qrs', mempool.txs['tuv'].parents)
+
+    def test_drop_tx_called_twice_throws(self):
+        mempool = blockbuilder.Mempool()
+        mempool.fromDict(self.testDict)
+        self.assertIn('qrs', mempool.txs.keys())
+        mempool.dropTx('qrs')
+        self.assertNotIn('qrs', mempool.txs.keys())
+        with self.assertRaises(KeyError):
+            mempool.dropTx('qrs')
+
+    def test_remove_confirmed_tx(self):
+        mempool = blockbuilder.Mempool()
+        mempool.fromDict(self.testDict)
+        self.assertIn('qrs', mempool.txs.keys())
+        mempool.removeConfirmedTx('qrs')
+        self.assertNotIn('qrs', mempool.txs.keys())
+        with self.assertRaises(KeyError):
+            mempool.removeConfirmedTx('qrs')
+
 if __name__ == '__main__':
     unittest.main()

@@ -493,6 +493,17 @@ class Mempool():
 
         return bestCandidateSet
 
+    def removeConfirmedTx(self, txid):
+        for d in self.txs[txid].descendants:
+            if txid in self.txs[d].parents:
+                self.txs[d].parents.remove(txid)
+        self.txs.pop(txid)
+
+    def dropTx(self, txid):
+        for p in self.txs[txid].parents:
+            if txid in self.txs[p].descendants:
+                self.txs[p].descendants.remove(txid)
+        self.txs.pop(txid)
 
 def getRepresentativeTxid(txids):
     txids.sort()

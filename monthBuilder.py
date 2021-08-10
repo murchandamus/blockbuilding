@@ -45,7 +45,7 @@ class Monthbuilder():
     def removeSetOfTxsFromMempool(self, txsSet, mempool):
         try:
             for k in txsSet:
-                del mempool.txs[k]
+                mempool.dropTx(k)
         except KeyError:
             print("tx to delete not found" + k)
         return mempool
@@ -68,7 +68,7 @@ class Monthbuilder():
                     self.globalMempool.txs[k] = blockMempool.txs[k]
                 for k in list(self.globalMempool.txs.keys()):
                     if k in self.usedTxSet:
-                        self.globalMempool.txs.pop(k)
+                        self.globalMempool.removeConfirmedTx(k)
                 self.globalMempool.fromDict(self.globalMempool.txs, blockId)
 
         print("Global Mempool after loading block: " + str(self.globalMempool.txs.keys()))
@@ -126,7 +126,7 @@ if __name__ == '__main__':
                 blockfileName = f.split('.')[0]
                 break
         if blockfileName == '':
-            print('Height not found, done')
+            print('Height ' + str(mb.height) + ' not found, done')
             break
         print("Starting block: " + blockfileName)
         mb.loadBlockMempool(blockfileName)
