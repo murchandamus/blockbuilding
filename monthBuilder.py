@@ -57,7 +57,7 @@ class Monthbuilder():
                 fileFound = 1
                 blockMempool = bb.Mempool()
                 blockMempool.fromTXT(os.path.join(self.pathToMonth, file))
-                blockTxsSet = set([k for k in blockMempool.txs.keys()]) # TODO: should this just be 'set(keys())'?
+                blockTxsSet = set(blockMempool.txs.keys())
                 txsToRemove = blockTxsSet.difference(self.allowSet)
                 print("txsToRemove: " + str(txsToRemove))
                 if len(txsToRemove) > 0:
@@ -90,13 +90,17 @@ class Monthbuilder():
 
     def runBlockWithGlobalMempool(self):
         coinbaseSizeForCurrentBlock = self.coinbaseSizes[self.height]
+        print("Current height: " + str(self.height))
         weightAllowance = 4000000 - int(coinbaseSizeForCurrentBlock)
-        print("Global Mempool before BB(): " + str(self.globalMempool))
-        builder = bb.Blockbuilder(self.globalMempool, weightAllowance) # TODO: use coinbase size here
+        print("Current weightAllowance: " + str(weightAllowance))
+        print("Global Mempool before BB(): " + str(self.globalMempool.txs.keys()))
+        bbMempool = bb.Mempool()
+        bbMempool.fromDict(self.globalMempool.txs)
+        builder = bb.Blockbuilder(bbMempool, weightAllowance) # TODO: use coinbase size here
         print("Block Mempool after BB(): " + str(builder.mempool.txs.keys()))
         selectedTxs = builder.buildBlockTemplate()
         print("selectedTxs: " + str(selectedTxs))
-        self.usedTxSet = self.usedTxSet.union(set(selectedTxs))
+        self.usedTxSet = set(selectedTxs).union(self.usedTxSet)
         builder.outputBlockTemplate(self.height) # TODO: Height+blockhash?
 
     def getNextBlockHeight(self):
