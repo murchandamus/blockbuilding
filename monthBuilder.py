@@ -65,6 +65,8 @@ class Monthbuilder():
                     blockMempool = self.removeSetOfTxsFromMempool(txsToRemove, blockMempool)
                     print("block txs after pruning for allow set " + str(blockMempool.txs.keys()))
                 for k in blockMempool.txs.keys():
+                    if k in self.globalMempool.txs:
+                        blockMempool.txs[k].parents = list(set(self.globalMempool.txs[k].parents + blockMempool.txs[k].parents))
                     self.globalMempool.txs[k] = blockMempool.txs[k]
                 for k in list(self.globalMempool.txs.keys()):
                     if k in self.usedTxSet:
