@@ -102,6 +102,7 @@ class Monthbuilder():
         print("selectedTxs: " + str(selectedTxs))
         self.usedTxSet = set(selectedTxs).union(self.usedTxSet)
         builder.outputBlockTemplate(self.height) # TODO: Height+blockhash?
+        self.globalMempool.fromDict(bbMempool.txs)
 
     def getNextBlockHeight(self):
         ## Assume that there are mempool files in folder and they are prefixed with a _seven_ digit block height
