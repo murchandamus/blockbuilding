@@ -68,6 +68,8 @@ class Monthbuilder():
                 for k in blockMempool.txs.keys():
                     if k in self.globalMempool.txs:
                         blockMempool.txs[k].parents = list(set(self.globalMempool.txs[k].parents + blockMempool.txs[k].parents))
+                        blockMempool.txs[k].descendants = list(set(self.globalMempool.txs[k].descendants + blockMempool.txs[k].descendants))
+
                     self.globalMempool.txs[k] = blockMempool.txs[k]
                 for k in list(self.globalMempool.txs.keys()):
                     if k in self.usedTxSet:
