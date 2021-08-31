@@ -1,5 +1,6 @@
 import blockbuilder as bb
 import os
+import logging
 from os.path import isfile, join
 
 # TODO:
@@ -36,7 +37,7 @@ class Monthbuilder():
                 import_allow_list.close()
         if len(self.allowSet) == 0:
             raise ValueError('Allowed list empty')
-        print('allowSet: ' + str(self.allowSet))
+        logging.debug('allowSet: ' + str(self.allowSet))
 
     def updateUsedList(self, txList):
         newTxSet = set(txList)
@@ -47,7 +48,7 @@ class Monthbuilder():
             for k in txsSet:
                 mempool.dropTx(k)
         except KeyError:
-            print("tx to delete not found" + k)
+            logging.error("tx to delete not found" + k)
         return mempool
 
     def loadBlockMempool(self, blockId):
@@ -59,11 +60,11 @@ class Monthbuilder():
                 blockMempool.fromTXT(os.path.join(self.pathToMonth, file))
                 blockTxsSet = set(blockMempool.txs.keys())
                 txsToRemove = blockTxsSet.difference(self.allowSet)
-                print("txsToRemove: " + str(txsToRemove))
+                logging.debug("txsToRemove: " + str(txsToRemove))
                 if len(txsToRemove) > 0:
-                    print("block txs before pruning for allow set " + str(blockTxsSet))
+                    logging.debug("block txs before pruning for allow set " + str(blockTxsSet))
                     blockMempool = self.removeSetOfTxsFromMempool(txsToRemove, blockMempool)
-                    print("block txs after pruning for allow set " + str(blockMempool.txs.keys()))
+                    logging.debug("block txs after pruning for allow set " + str(blockMempool.txs.keys()))
                 for k in blockMempool.txs.keys():
                     if k in self.globalMempool.txs:
                         blockMempool.txs[k].parents = list(set(self.globalMempool.txs[k].parents + blockMempool.txs[k].parents))
@@ -73,7 +74,7 @@ class Monthbuilder():
                         self.globalMempool.removeConfirmedTx(k)
                 self.globalMempool.fromDict(self.globalMempool.txs, blockId)
 
-        print("Global Mempool after loading block: " + str(self.globalMempool.txs.keys()))
+        logging.debug("Global Mempool after loading block: " + str(self.globalMempool.txs.keys()))
 
         if fileFound == 0:
             raise Exception("Mempool not found")
@@ -86,22 +87,22 @@ class Monthbuilder():
                         lineItems = line.split(' ')
                         self.coinbaseSizes[int(lineItems[0])] = lineItems[1].rstrip('\n')
                 coinbaseSizes.close()
-        print("CoinbaseSizes: " + str(self.coinbaseSizes))
+        logging.debug("CoinbaseSizes: " + str(self.coinbaseSizes))
         if len(self.coinbaseSizes) == 0:
             raise Exception('Coinbase file not found')
 
     def runBlockWithGlobalMempool(self):
         coinbaseSizeForCurrentBlock = self.coinbaseSizes[self.height]
-        print("Current height: " + str(self.height))
+        logging.info("Current height: " + str(self.height))
         weightAllowance = 4000000 - int(coinbaseSizeForCurrentBlock)
-        print("Current weightAllowance: " + str(weightAllowance))
-        print("Global Mempool before BB(): " + str(self.globalMempool.txs.keys()))
+        logging.debug("Current weightAllowance: " + str(weightAllowance))
+        logging.debug("Global Mempool before BB(): " + str(self.globalMempool.txs.keys()))
         bbMempool = bb.Mempool()
         bbMempool.fromDict(self.globalMempool.txs)
         builder = bb.Blockbuilder(bbMempool, weightAllowance) # TODO: use coinbase size here
-        print("Block Mempool after BB(): " + str(builder.mempool.txs.keys()))
+        logging.debug("Block Mempool after BB(): " + str(builder.mempool.txs.keys()))
         selectedTxs = builder.buildBlockTemplate()
-        print("selectedTxs: " + str(selectedTxs))
+        logging.debug("selectedTxs: " + str(selectedTxs))
         self.usedTxSet = set(selectedTxs).union(self.usedTxSet)
         builder.outputBlockTemplate(self.height) # TODO: Height+blockhash?
         self.globalMempool.fromDict(bbMempool.txs)
@@ -133,8 +134,8 @@ if __name__ == '__main__':
                 blockfileName = f.split('.')[0]
                 break
         if blockfileName == '':
-            print('Height ' + str(mb.height) + ' not found, done')
+            logging.info('Height ' + str(mb.height) + ' not found, done')
             break
-        print("Starting block: " + blockfileName)
+        logging.info("Starting block: " + blockfileName)
         mb.loadBlockMempool(blockfileName)
         mb.runBlockWithGlobalMempool()
