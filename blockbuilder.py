@@ -7,6 +7,7 @@ import math
 from pathlib import Path
 import sys
 import time
+import logging
 
 def main(argv):
     mempoolfilepath = ''
@@ -34,7 +35,7 @@ def main(argv):
     bb.buildBlockTemplate()
     bb.outputBlockTemplate(mempool.blockId)
     endTime = time.time()
-    print('Elapsed time: ' + str(endTime - startTime))
+    logging.info('Elapsed time: ' + str(endTime - startTime))
 
 class Blockbuilder():
     def __init__(self, mempool, weightLimit=3992820):
@@ -50,9 +51,9 @@ class Blockbuilder():
         self.availableWeight = self.weightLimit
 
     def buildBlockTemplate(self):
-        print("Building blocktemplate...")
+        logging.info("Building blocktemplate...")
         while len(self.mempool.txs) > 0 and self.availableWeight > 0:
-            print("Weight left: " + str(self.availableWeight))
+            logging.debug("Weight left: " + str(self.availableWeight))
             bestCandidateSet = self.mempool.popBestCandidateSet(self.availableWeight)
             if bestCandidateSet is None or len(bestCandidateSet.txs) == 0:
                 break
@@ -75,7 +76,7 @@ class Blockbuilder():
 
         filePath += '.byclusters'
         with open(filePath, 'w') as output_file:
-            print(self.selectedTxs)
+            logging.debug(self.selectedTxs)
             if len(self.selectedTxs) > 0:
                 selected = CandidateSet({txid: self.refMempool.txs[txid] for txid in self.selectedTxs})
                 output_file.write('CreateNewBlockByClusters(): fees ' + str(selected.getFees()) +
@@ -252,13 +253,13 @@ class Cluster():
                     continue
                 if len(tx.descendants) == 0:
                     # can never be part of best candidate set, due to low feerate and no descendants
-                    # print(txid + ': useless, too low feerate and no descendants')
+                    logging.debug(txid + ': useless, too low feerate and no descendants')
                     nothingChanged = False
                     prune.append(txid)
                     self.uselessTxs[txid] = tx
                 elif all(d in self.uselessTxs.keys() for d in tx.descendants):
                     # can never be part of best candidate set, due to low feerate and only useless descendants
-                    # print(txid + ': useless, too low feerate and useless descendants')
+                    logging.debug(txid + ': useless, too low feerate and useless descendants')
                     nothingChanged = False
                     prune.append(txid)
                     self.uselessTxs[txid] = tx
@@ -293,7 +294,7 @@ class Cluster():
         self.eligibleTxs = {}
         self.eligibleTxs.update(self.txs)
         self.uselessTxs = {}
-        print("Calculate bestCandidateSet at weightLimit of " + str(weightLimit) + " for cluster of " + str(len(self.txs)) + ": " + str(self))
+        logging.debug("Calculate bestCandidateSet at weightLimit of " + str(weightLimit) + " for cluster of " + str(len(self.txs)) + ": " + str(self))
         if (len(self.txs) > 99):
             self.export()
         bestCand = None # current best candidateSet
@@ -305,7 +306,7 @@ class Cluster():
             if cand.getWeight() <= self.weightLimit:
                 if bestCand is None or bestCand.getEffectiveFeerate() < cand.getEffectiveFeerate() or (bestCand.getEffectiveFeerate() == cand.getEffectiveFeerate() and bestCand.getWeight() < cand.getWeight()):
                     bestCand = cand
-                    print('ancestrySet is new best candidate set in cluster ' + str(bestCand))
+                    logging.debug('ancestrySet is new best candidate set in cluster ' + str(bestCand))
                 heapq.heappush(searchHeap, bestCand)
 
         if bestCand is not None:
@@ -322,7 +323,7 @@ class Cluster():
                 previouslyEvaluated.add(nextCS)
                 if (nextCS.getEffectiveFeerate() > bestCand.getEffectiveFeerate() or (nextCS.getEffectiveFeerate() == bestCand.getEffectiveFeerate() and nextCS.getWeight() > bestCand.getWeight())):
                     bestCand = nextCS
-                    # print('new best candidate set in cluster ' + str(bestCand))
+                    logging.debug('new best candidate set in cluster ' + str(bestCand))
                     self.pruneEligibleTxs(bestCand.getEffectiveFeerate())
                     heapq.heappush(searchHeap, CandidateSet(self.eligibleTxs))
                 searchCandidates = self.expandCandidateSet(nextCS, bestCand.getEffectiveFeerate())
@@ -333,7 +334,7 @@ class Cluster():
                         pass
                     else:
                         heapq.heappush(searchHeap, sc)
-        # print('expanded ' + str(len(previouslyEvaluated)) + ' candidateSets cluster ' + str(self.representative))
+        logging.debug('expanded ' + str(len(previouslyEvaluated)) + ' candidateSets cluster ' + str(self.representative))
         self.bestCandidate = bestCand
         if bestCand is not None:
             self.bestFeerate = bestCand.getEffectiveFeerate()
@@ -383,7 +384,7 @@ class Mempool():
         import_file.close()
 
     def fromTXT(self, filePath, SplitBy=" "):
-        print("Loading mempool from " + filePath)
+        logging.info("Loading mempool from " + filePath)
         with open(filePath, 'r') as import_file:
             self.blockId = Path(filePath).stem
             for line in import_file:
@@ -397,9 +398,9 @@ class Mempool():
                 self.txs[txid] = tx
                 self.txsToBeClustered[txid] = tx
         import_file.close()
-        print("Mempool loaded")
+        logging.debug("Mempool loaded")
         # backfill descendants from parents
-        print("Backfill descendants from parents...")
+        logging.debug("Backfill descendants from parents...")
         actualParents = {}
         for tx in self.txs.values():
             nonParentAncestors = set()
@@ -407,14 +408,14 @@ class Mempool():
             for p in tx.parents:
                 nonParentAncestors.update(set(self.txs[p].parents).intersection(set(tx.parents)))
             actualParents[tx.txid] = list(set(tx.parents) - nonParentAncestors)
-        print("Calculated all actual parents")
+        logging.debug("Calculated all actual parents")
 
         for tx in self.txs.values():
             tx.parents = actualParents[tx.txid]
             for p in tx.parents:
                 self.txs[p].descendants.append(tx.txid)
-        print("Descendants backfilled")
-        print(str(len(self.txs))+ " txs loaded")
+        logging.debug("Descendants backfilled")
+        logging.info(str(len(self.txs))+ " txs loaded")
 
     def getTx(self, txid):
         return self.txs[txid]
@@ -426,7 +427,7 @@ class Mempool():
         for txid, tx in self.txsToBeClustered.items():
             if txid in self.txClusterMap.keys():
                 continue
-            print("Cluster tx: " + txid)
+            logging.debug("Cluster tx: " + txid)
             localCluster = Cluster(tx, weightLimit)
             localClusterTxids = tx.getLocalClusterTxids()
             while len(localClusterTxids) > 0:
@@ -442,13 +443,12 @@ class Mempool():
                 self.txClusterMap[lct] = localCluster.representative
             heapq.heappush(self.clusterHeap, localCluster)
 
-        print('finished cluster building')
-        print("clusters: " + str(self.clusterHeap))
+        logging.debug('finished cluster building')
         self.txsToBeClustered = {}
         return self.clusters
 
     def popBestCandidateSet(self, weightLimit):
-        print("Called popBestCandidateSet with weightLimit " + str(weightLimit))
+        logging.debug("Called popBestCandidateSet with weightLimit " + str(weightLimit))
         self.cluster(weightLimit)
         bestCluster = heapq.heappop(self.clusterHeap) if len(self.clusterHeap) else None
         bestCandidateSet = bestCluster.bestCandidate if bestCluster is not None else None
@@ -459,7 +459,7 @@ class Mempool():
         while (bestCandidateSet is None or bestCandidateSet.getWeight() > weightLimit) and len(self.clusterHeap) > 0:
             # Update best candidate set in cluster with weight limit
             if bestCandidateSet is not None:
-                print("bestCandidateSet " + str(bestCandidateSet) + " is over weight limit: " + str(weightLimit))
+                logging.debug("bestCandidateSet " + str(bestCandidateSet) + " is over weight limit: " + str(weightLimit))
             if bestCluster.getBestCandidateSet(weightLimit) is None:
                 # don't add bestCluster without candidateSet back to heap
                 bestCluster = heapq.heappop(self.clusterHeap)
@@ -471,10 +471,10 @@ class Mempool():
         if bestCandidateSet is not None and bestCandidateSet.getWeight() > weightLimit:
             bestCandidateSet = None
 
-        print("best candidate from all clusters: " + str(bestCandidateSet))
+        logging.debug("best candidate from all clusters: " + str(bestCandidateSet))
 
         if bestCandidateSet is None:
-            print("Block finished")
+            logging.debug("Block finished")
         else:
             # delink bestCandidateSet from remaining cluster
             bestCluster.removeCandidateSetLinks(bestCandidateSet)
