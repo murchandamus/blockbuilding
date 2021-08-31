@@ -122,6 +122,7 @@ class Monthbuilder():
             return self.height
 
 if __name__ == '__main__':
+    logging.basicConfig(filename='monthbuilder-latest.log', level=logging.INFO)
     mb = Monthbuilder(".")
     mb.loadAllowSet()
     mb.loadCoinbaseSizes() # TODO
