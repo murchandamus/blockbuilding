@@ -2,8 +2,8 @@ import os
 from xlwt import Workbook
 
 class Block():
-    def __init__(self, blockNumer, weightsDic, totalFeeDic):
-        self.blockNumber = blockNumer
+    def __init__(self, blockNumber, weightsDic, totalFeeDic):
+        self.blockNumber = blockNumber
         self.weights = weightsDic
         self.totalFees = totalFeeDic
 
@@ -23,10 +23,9 @@ def getBlockDetailsFromFile(fileLocation):
 def getBlockNumbersAndTypes(directory = r"./blockCompareTest"):
     files = os.listdir(directory)
     blockNumbers = list(dict.fromkeys([f[:f.find(".")] for f in files]))
-    blockTypes = list(dict.fromkeys([f[f.find("."):] for f in files]))
-    for x in ["",'.DS_Store', '.mempool']:
-        if x in blockTypes:
-            blockTypes.remove(x)
+    fileTypes = list(dict.fromkeys([f[f.find("."):] for f in files]))
+    allowedBlockTypes = ['.gbt', '.block', '.byclusters', '.LpSolve']
+    blockTypes = list(set(fileTypes) & set(allowedBlockTypes))
     return blockNumbers, blockTypes
 
 
