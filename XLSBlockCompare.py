@@ -10,9 +10,10 @@ class Block():
 def getBlockDetailsFromFile(fileLocation):
     try:
         blockDetails = open(fileLocation, 'r')
-        firstline = blockDetails.readline()
-        totalFee = firstline[firstline.find("fees") + 5:firstline.find("weight") - 1]
-        weight = firstline[firstline.find("weight") + 7:]
+        firstline = blockDetails.readline().strip()
+        lineItems = firstline.split(" ")
+        totalFee = lineItems[lineItems.index("fees") + 1]
+        weight = lineItems[lineItems.index("weight") + 1]
         blockDetails.close()
         return totalFee, weight
     except FileNotFoundError:
