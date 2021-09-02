@@ -23,10 +23,14 @@ def getBlockDetailsFromFile(fileLocation):
 
 def getBlockNumbersAndTypes(directory = r"./blockCompareTest"):
     files = os.listdir(directory)
-    blockNumbers = list(dict.fromkeys([f[:f.find(".")] for f in files]))
     fileTypes = list(dict.fromkeys([f[f.find("."):] for f in files]))
     allowedBlockTypes = ['.gbt', '.block', '.byclusters', '.LpSolve']
     blockTypes = list(set(fileTypes) & set(allowedBlockTypes))
+    blockIdSet = set()
+    for f in files:
+        if f.endswith(tuple(blockTypes)):
+            blockIdSet.add(f[:f.find('.')])
+    blockNumbers = list(blockIdSet)
     return blockNumbers, blockTypes
 
 
