@@ -93,9 +93,9 @@ class Blockbuilder():
 
 
 # A Transaction in the context of a specific mempool and blocktemplate state.
-# Ancestors, Parents, and Descendants will be updated as the blocktemplate is being built whenever anything gets picked from the Cluster.
+# Ancestors, Parents, and children will be updated as the blocktemplate is being built whenever anything gets picked from the Cluster.
 class Transaction():
-    def __init__(self, txid, fee, weight, parents=None, descendants=None):
+    def __init__(self, txid, fee, weight, parents=None, children=None):
         self.txid = txid
         self.fee = int(fee)
         self.feerate = None
@@ -103,12 +103,12 @@ class Transaction():
         if parents is None:
             parents = []
         self.parents = parents
-        if descendants is None:
-            descendants = []
-        self.descendants = descendants
+        if children is None:
+            children = []
+        self.children = children
 
     def createExportDict(self):
-        txRep = { 'fee': self.fee, 'weight': self.weight, 'spentby': self.descendants, 'depends': self.parents }
+        txRep = { 'fee': self.fee, 'weight': self.weight, 'spentby': self.children, 'depends': self.parents }
         return txRep
 
     def getEffectiveFeerate(self):
@@ -117,10 +117,10 @@ class Transaction():
         return self.feerate
 
     def getLocalClusterTxids(self):
-        return list(set([self.txid] + self.descendants + self.parents))
+        return list(set([self.txid] + self.children + self.parents))
 
     def __str__(self):
-        return "{txid: " + self.txid + ", descendants: " + str(self.descendants) + ", parents: " + str(self.parents) + ", fee: " + str(self.fee) + ", weight: " + str(self.weight) + "}"
+        return "{txid: " + self.txid + ", children: " + str(self.children) + ", parents: " + str(self.parents) + ", fee: " + str(self.fee) + ", weight: " + str(self.weight) + "}"
 
 
 # A set of transactions that forms a unit and may be added to a block as is
@@ -170,10 +170,10 @@ class CandidateSet():
             self.effectiveFeerate = self.getFees()/self.getWeight()
         return self.effectiveFeerate
 
-    def getDirectDescendants(self):
-        allDescendants = (d for tx in self.txs.values() for d in tx.descendants)
-        allDirectDescendants = set(allDescendants) - set(self.txs.keys())
-        return list(allDirectDescendants)
+    def getChildren(self):
+        allChildren = (d for tx in self.txs.values() for d in tx.children)
+        unexploredChildren = set(allChildren) - set(self.txs.keys())
+        return list(unexploredChildren)
 
     def __str__(self):
         return "{feerate: " + str(self.getEffectiveFeerate()) + ", txs: "+ str(list(self.txs.keys())) + "}"
@@ -251,15 +251,15 @@ class Cluster():
             for txid, tx in self.eligibleTxs.items():
                 if tx.getEffectiveFeerate() >= bestFeerate:
                     continue
-                if len(tx.descendants) == 0:
-                    # can never be part of best candidate set, due to low feerate and no descendants
-                    logging.debug(txid + ': useless, too low feerate and no descendants')
+                if len(tx.children) == 0:
+                    # can never be part of best candidate set, due to low feerate and no children
+                    logging.debug(txid + ': useless, too low feerate and no children')
                     nothingChanged = False
                     prune.append(txid)
                     self.uselessTxs[txid] = tx
-                elif all(d in self.uselessTxs.keys() for d in tx.descendants):
+                elif all(d in self.uselessTxs.keys() for d in tx.children):
                     # can never be part of best candidate set, due to low feerate and only useless descendants
-                    logging.debug(txid + ': useless, too low feerate and useless descendants')
+                    logging.debug(txid + ': useless, too low feerate and useless children')
                     nothingChanged = False
                     prune.append(txid)
                     self.uselessTxs[txid] = tx
@@ -269,12 +269,12 @@ class Cluster():
                 break
 
     def expandCandidateSet(self, candidateSet, bestFeerate):
-        allDirectDescendants = candidateSet.getDirectDescendants()
+        allChildren = candidateSet.getChildren()
         expandedCandidateSets = []
-        for d in allDirectDescendants:
+        for d in allChildren:
             if d in self.uselessTxs.keys() or d in candidateSet.txs.keys():
                 continue
-            # Skip descendants of lower feerate than candidate set without children
+            # Skip children of lower feerate than candidate set without children
             descendant = self.txs[d]
             descendantFeeRate = descendant.getEffectiveFeerate()
             # Ensure this is a new dictionary instead of modifying an existing
@@ -346,7 +346,7 @@ class Cluster():
     def removeCandidateSetLinks(self, candidateSet):
         for tx in self.txs.values():
             tx.parents = [t for t in tx.parents if t not in candidateSet.txs.keys()]
-            tx.descendants = [t for t in tx.descendants if t not in candidateSet.txs.keys()]
+            tx.children = [t for t in tx.children if t not in candidateSet.txs.keys()]
 
 
 # The Mempool class represents a transient state of what is available to be used in a blocktemplate
@@ -393,14 +393,14 @@ class Mempool():
                 line = line.rstrip('\n')
                 elements = line.split(SplitBy)
                 txid = elements[0]
-                # descendants are not stored in this file type
+                # children are not stored in this file type
                 tx = Transaction(txid, int(elements[1]), int(elements[2]), elements[3:])
                 self.txs[txid] = tx
                 self.txsToBeClustered[txid] = tx
         import_file.close()
         logging.debug("Mempool loaded")
-        # backfill descendants from parents
-        logging.debug("Backfill descendants from parents...")
+        # backfill children from parents
+        logging.debug("Backfill children from parents...")
         actualParents = {}
         for tx in self.txs.values():
             nonParentAncestors = set()
@@ -413,8 +413,8 @@ class Mempool():
         for tx in self.txs.values():
             tx.parents = actualParents[tx.txid]
             for p in tx.parents:
-                self.txs[p].descendants.append(tx.txid)
-        logging.debug("Descendants backfilled")
+                self.txs[p].children.append(tx.txid)
+        logging.debug("children backfilled")
         logging.info(str(len(self.txs))+ " txs loaded")
 
     def getTx(self, txid):
@@ -494,7 +494,7 @@ class Mempool():
         return bestCandidateSet
 
     def removeConfirmedTx(self, txid):
-        for d in self.txs[txid].descendants:
+        for d in self.txs[txid].children:
             if d in self.txs.keys():
                 if txid in self.txs[d].parents:
                     self.txs[d].parents.remove(txid)
@@ -503,8 +503,8 @@ class Mempool():
     def dropTx(self, txid):
         for p in self.txs[txid].parents:
             if p in self.txs.keys():
-                if txid in self.txs[p].descendants:
-                    self.txs[p].descendants.remove(txid)
+                if txid in self.txs[p].children:
+                    self.txs[p].children.remove(txid)
         self.txs.pop(txid)
 
 def getRepresentativeTxid(txids):

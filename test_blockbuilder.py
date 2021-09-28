@@ -216,7 +216,7 @@ class TestBlockbuilder(unittest.TestCase):
         self.assertIn('qrs', mempool.txs.keys())
         mempool.dropTx('qrs')
         self.assertNotIn('qrs', mempool.txs.keys())
-        self.assertNotIn('qrs', mempool.txs['nop'].descendants)
+        self.assertNotIn('qrs', mempool.txs['nop'].children)
         self.assertIn('qrs', mempool.txs['tuv'].parents)
 
     def test_drop_tx_called_twice_throws(self):
