@@ -1,6 +1,7 @@
 import blockbuilder as bb
 from collections import OrderedDict
 
+
 class BlockbuilderByAnces():
     def __init__(self, mempool, weightLimit=3992820):
         self.mempool = mempool
@@ -11,7 +12,7 @@ class BlockbuilderByAnces():
         self.availableWeight = self.weightLimit
 
     def getAncestors(self, tx, depth=0):
-        """ Fron Johns Solution
+        """ From John's Solution
         Returns: list of (ancestor, depth) tuples.
         Ancestors may appear more than once in an ancestor tree, including with different depths.
         Sorting by descending depth and deduping implies no descendant appears before its ancestor."""
@@ -27,7 +28,7 @@ class BlockbuilderByAnces():
         return ret
 
 
-    def OrderTxs(self, txs):
+    def preprocessMempool(self, txs):
         for tx in txs:
             # Calculate ancestors for each tx
             self.mempool.txs[tx].ancestors = self.getAncestors(self.mempool.txs[tx], 0)
@@ -42,19 +43,17 @@ class BlockbuilderByAnces():
 
 
     def buildBlockTemplat(self, weightlimit):
-        txs = self.OrderTxs(self.mempool.txs)
+        txs = self.preprocessMempool(self.mempool.txs)
 
         block = []
         block_weight = 0
 
         def remove_from_pool(tx):
-            # print("including tx {}".format(tx.txid))
             for desc in set(self.mempool.txs[tx].descendants):
                 self.mempool.txs[desc].ancestor_fee -= self.mempool.txs[tx].fee
                 self.mempool.txs[desc].ancestor_weight -= self.mempool.txs[tx].weight
                 self.mempool.txs[desc].ancestor_feerate = txs[desc].ancestor_fee / txs[desc].ancestor_weight
                 self.mempool.txs[desc].ancestors.remove(tx)
-                # print("modifying descendant {}".format(desc))
 
         while txs:
             # Pop first transaction from ordered dict
@@ -68,13 +67,8 @@ class BlockbuilderByAnces():
             ancestors = [a for a in tx.ancestors]
             for ancestor in ancestors:
                 if self.mempool.txs[ancestor].txid not in txs:
-                    # ancestor already included
-                    print(self.mempool.txs[ancestor].txid)
+                    print('Missing ancestor: ' + self.mempool.txs[ancestor].txid)
                     assert False
-                print("anc" + ancestor)
-                print("dec" + str(self.mempool.txs[ancestor].descendants))
-                for desc in self.mempool.txs[ancestor].descendants:
-                    print(desc)
                 remove_from_pool(ancestor)
                 block.append(txs.pop(self.mempool.txs[ancestor].txid).txid)
                 block_weight += self.mempool.txs[ancestor].weight
@@ -87,16 +81,6 @@ class BlockbuilderByAnces():
 
 if __name__ == '__main__':
     mempool = bb.Mempool()
-    mempool.fromTXT("/Users/clara/Documents/GitHub/blockbuilding/test/anotherTestBlock.mempool")
+    mempool.fromTXT("monthTest/100124-000123.mempool")
     builder = BlockbuilderByAnces(mempool)
-    builder.getAncestors(mempool.txs["2"])
-  #  builder.OrderTxs(mempool.txs)
     print("block is "+str(builder.buildBlockTemplat(100000)))
-
-
-
-
-
-
-
-
