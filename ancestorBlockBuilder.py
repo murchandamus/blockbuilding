@@ -42,11 +42,10 @@ class BlockbuilderByAnces():
         return OrderedDict(sorted(txs.items(), key=lambda tx: tx[1].ancestor_feerate, reverse=True))
 
 
-    def buildBlockTemplat(self, weightlimit):
+    def buildBlockTemplate(self):
         txs = self.preprocessMempool(self.mempool.txs)
 
         block = []
-        block_weight = 0
 
         def remove_from_pool(tx):
             for desc in set(self.mempool.txs[tx].descendants):
@@ -58,7 +57,7 @@ class BlockbuilderByAnces():
         while txs:
             # Pop first transaction from ordered dict
             tx = next(iter(txs.values()))
-            if block_weight + tx.ancestor_weight > weightlimit:
+            if  tx.ancestor_weight > self.availableWeight:
                 # Package won't fit in block
                 txs.pop(tx.txid)
                 continue
@@ -71,7 +70,7 @@ class BlockbuilderByAnces():
                     assert False
                 remove_from_pool(ancestor)
                 block.append(txs.pop(self.mempool.txs[ancestor].txid).txid)
-                block_weight += self.mempool.txs[ancestor].weight
+                self.availableWeight -= self.mempool.txs[ancestor].weight
             # Resort list
             txs = OrderedDict(sorted(txs.items(), key=lambda tx: tx[1].ancestor_feerate, reverse=True))
             continue  # Break into outer loop. Restart iteration over all unincluded txs
@@ -83,4 +82,4 @@ if __name__ == '__main__':
     mempool = bb.Mempool()
     mempool.fromTXT("monthTest/100124-000123.mempool")
     builder = BlockbuilderByAnces(mempool)
-    print("block is "+str(builder.buildBlockTemplat(100000)))
+    print("block is "+str(builder.buildBlockTemplate(100000)))
