@@ -13,40 +13,6 @@ class TestBlockbuilder(unittest.TestCase):
             "xyz": blockbuilder.Transaction("xyz", 10, 10, [], [])
         }
 
-    def test_valid_candidate_set(self):
-        blockbuilder.CandidateSet({"123": self.testDict["123"], "abc": self.testDict["abc"]})
-
-    def test_missing_ancestor_candidate_set(self):
-        self.assertRaises(TypeError, blockbuilder.CandidateSet, {"abc": self.testDict["abc"]})
-
-    def test_candidate_set_equivalence(self):
-        cs = blockbuilder.CandidateSet({"123": self.testDict["123"]})
-        otherCs = blockbuilder.CandidateSet({"123": self.testDict["123"]})
-        self.assertTrue(cs == otherCs)
-
-    def test_fail_candidate_set_equivalence(self):
-        cs = blockbuilder.CandidateSet({"nop": self.testDict["nop"]})
-        otherCs = blockbuilder.CandidateSet({"123": self.testDict["123"]})
-        self.assertFalse(cs == otherCs)
-
-    def test_candidate_set_get_weight(self):
-        cand = blockbuilder.CandidateSet({"123": self.testDict["123"], "abc": self.testDict["abc"]})
-        self.assertEqual(cand.getWeight(), 200)
-
-    def test_candidate_set_get_fees(self):
-        cand = blockbuilder.CandidateSet({"123": self.testDict["123"], "abc": self.testDict["abc"]})
-        self.assertEqual(cand.getFees(), 200)
-
-    def test_candidate_set_get_effective_feerate(self):
-        cand = blockbuilder.CandidateSet({"123": self.testDict["123"], "abc": self.testDict["abc"]})
-        self.assertEqual(cand.getEffectiveFeerate(), 1)
-
-    def test_candidate_set_get_effective_feerate_can_be_float(self):
-        cand = blockbuilder.CandidateSet({"123": self.testDict["123"], "abc": self.testDict["abc"]})
-        self.testDict['123'].fee = 25
-        print('cand for feeRate: '  +  str(cand))
-        self.assertEqual(cand.getEffectiveFeerate(), 0.625)
-
     def build_nop_cluster(self):
         cluster = blockbuilder.Cluster(self.testDict["nop"], 4000000)
         cluster.addTx(self.testDict["qrs"])
