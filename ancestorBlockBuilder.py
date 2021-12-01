@@ -1,8 +1,9 @@
 from mempool import Mempool
+from abstract_builder import Blockbuilder
 from collections import OrderedDict
 
 
-class BlockbuilderByAnces():
+class BlockbuilderByAnces(Blockbuilder):
     def __init__(self, mempool, weightLimit=3992820):
         self.mempool = mempool
         self.refMempool = Mempool()
@@ -77,6 +78,8 @@ class BlockbuilderByAnces():
 
         return block
 
+    def outputBlockTemplate(self, blockId=""):
+        raise Exception("not implemented")
 
 if __name__ == '__main__':
     mempool = bb.Mempool()

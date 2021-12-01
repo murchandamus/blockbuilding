@@ -9,6 +9,7 @@ import sys
 import time
 import logging
 
+from abstract_builder import Blockbuilder
 from mempool import Mempool
 from transaction import Transaction
 from cluster import Cluster
@@ -42,7 +43,7 @@ def main(argv):
     endTime = time.time()
     logging.info('Elapsed time: ' + str(endTime - startTime))
 
-class CandidateSetBlockbuilder():
+class CandidateSetBlockbuilder(Blockbuilder):
     def __init__(self, mempool, weightLimit=3992820):
         self.mempool = mempool
         self.refMempool = Mempool()

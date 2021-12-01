@@ -1,7 +1,8 @@
 import unittest
 import transaction
 from mempool import Mempool
-import ancestorBlockBuilder as abb
+from ancestorBlockBuilder import BlockbuilderByAnces
+
 
 class TestBlockbuilderByAnces(unittest.TestCase):
     def setUp(self):
@@ -18,7 +19,7 @@ class TestBlockbuilderByAnces(unittest.TestCase):
         mp = Mempool()
         mp.fromDict(self.testDict)
 
-        ancBlockBuilder = abb.BlockbuilderByAnces(mp)
+        ancBlockBuilder = BlockbuilderByAnces(mp)
         ancestors = ancBlockBuilder.getAncestors(self.testDict["tuv"])
 
         self.assertEqual(ancestors, ["nop", "qrs", "tuv"])
