@@ -52,28 +52,25 @@ class Mempool():
                 elements = line.split(SplitBy)
                 txid = elements[0]
                 # children are not stored in this file type
-                tx = Transaction(txid, int(elements[1]), int(elements[2]), elements[3:])
+                tx = Transaction(txid, int(elements[1]), int(elements[2]), None, None, elements[3:])
                 self.txs[txid] = tx
                 self.txsToBeClustered[txid] = tx
         import_file.close()
         logging.debug("Mempool loaded")
         # backfill children from parents
-        logging.debug("Backfill children from parents...")
-        actualParents = {}
+        self.backfill_relatives()
+        logging.info(str(len(self.txs))+ " txs loaded")
+
+    def backfill_relatives(self):
+        logging.debug("Backfill parents and children from ancestors...")
         for tx in self.txs.values():
             nonParentAncestors = set()
-            ancestors = tx.parents
-            for p in tx.parents:
-                nonParentAncestors.update(set(self.txs[p].parents).intersection(set(tx.parents)))
-            actualParents[tx.txid] = list(set(tx.parents) - nonParentAncestors)
-        logging.debug("Calculated all actual parents")
-
-        for tx in self.txs.values():
-            tx.parents = actualParents[tx.txid]
+            for a in tx.ancestors:
+                nonParentAncestors.update(set(self.txs[a].ancestors).intersection(set(tx.ancestors)))
+            tx.parents = list(set(tx.ancestors) - nonParentAncestors)
             for p in tx.parents:
                 self.txs[p].children.append(tx.txid)
-        logging.debug("children backfilled")
-        logging.info(str(len(self.txs))+ " txs loaded")
+        logging.debug("Parents and children backfilled")
 
     def getTx(self, txid):
         return self.txs[txid]
