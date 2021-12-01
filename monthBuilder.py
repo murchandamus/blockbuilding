@@ -36,7 +36,7 @@ class Monthbuilder():
                         self.allowSet.add(line.rstrip('\n'))
                 import_allow_list.close()
         if len(self.allowSet) == 0:
-            raise ValueError('Allowed list empty')
+            raise ValueError('Allowed list empty, please run `preprocessing.py`')
         logging.debug('allowSet: ' + str(self.allowSet))
 
     def updateUsedList(self, txList):
@@ -91,7 +91,7 @@ class Monthbuilder():
                 coinbaseSizes.close()
         logging.debug("CoinbaseSizes: " + str(self.coinbaseSizes))
         if len(self.coinbaseSizes) == 0:
-            raise Exception('Coinbase file not found')
+            raise Exception('Coinbase file not found, please run `preprocessing.py`')
 
     def runBlockWithGlobalMempool(self):
         coinbaseSizeForCurrentBlock = self.coinbaseSizes[self.height]
