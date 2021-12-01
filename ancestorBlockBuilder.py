@@ -1,11 +1,11 @@
-import blockbuilder as bb
+from mempool import Mempool
 from collections import OrderedDict
 
 
 class BlockbuilderByAnces():
     def __init__(self, mempool, weightLimit=3992820):
         self.mempool = mempool
-        self.refMempool = bb.Mempool()
+        self.refMempool = Mempool()
         #self.refMempool.fromDict(mempool.txs)
         self.selectedTxs = []
         self.weightLimit = weightLimit

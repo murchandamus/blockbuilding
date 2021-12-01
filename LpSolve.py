@@ -1,5 +1,5 @@
 from ortools.linear_solver import pywraplp
-import blockbuilder as bb
+import candidate_set_blockbuilder as bb
 
 
 def LinearProgrammingSolve(txs, max_size, slover_choice='CBC', time_lim=5000):

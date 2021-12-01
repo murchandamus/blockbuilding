@@ -1,4 +1,4 @@
-import blockbuilder as bb
+import candidate_set_blockbuilder as bb
 import os
 import logging
 from os.path import isfile, join
@@ -101,7 +101,7 @@ class Monthbuilder():
         logging.debug("Global Mempool before BB(): " + str(self.globalMempool.txs.keys()))
         bbMempool = bb.Mempool()
         bbMempool.fromDict(self.globalMempool.txs)
-        builder = bb.Blockbuilder(bbMempool, weightAllowance) # TODO: use coinbase size here
+        builder = bb.CandidateSetBlockbuilder(bbMempool, weightAllowance) # TODO: use coinbase size here
         logging.debug("Block Mempool after BB(): " + str(builder.mempool.txs.keys()))
         selectedTxs = builder.buildBlockTemplate()
         logging.debug("selectedTxs: " + str(selectedTxs))

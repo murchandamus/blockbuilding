@@ -1,20 +1,20 @@
 import unittest
-import blockbuilder
+import candidate_set_blockbuilder as csbb
 from mempool import Mempool
 
 class TestBlockbuilder(unittest.TestCase):
     def setUp(self):
         self.testDict = {
-            "123": blockbuilder.Transaction("123", 100, 100, [], ["abc"]),
-            "abc": blockbuilder.Transaction("abc", 100, 100, ["123"], []),
-            "nop": blockbuilder.Transaction("nop", 1000, 100, [], ["qrs"]),  # medium feerate
-            "qrs": blockbuilder.Transaction("qrs", 10000, 100, ["nop"], ["tuv"]),  # high feerate
-            "tuv": blockbuilder.Transaction("tuv", 100, 100, ["qrs"], []),  # low feerate
-            "xyz": blockbuilder.Transaction("xyz", 10, 10, [], [])
+            "123": csbb.Transaction("123", 100, 100, [], ["abc"]),
+            "abc": csbb.Transaction("abc", 100, 100, ["123"], []),
+            "nop": csbb.Transaction("nop", 1000, 100, [], ["qrs"]),  # medium feerate
+            "qrs": csbb.Transaction("qrs", 10000, 100, ["nop"], ["tuv"]),  # high feerate
+            "tuv": csbb.Transaction("tuv", 100, 100, ["qrs"], []),  # low feerate
+            "xyz": csbb.Transaction("xyz", 10, 10, [], [])
         }
 
     def build_nop_cluster(self):
-        cluster = blockbuilder.Cluster(self.testDict["nop"], 4000000)
+        cluster = csbb.Cluster(self.testDict["nop"], 4000000)
         cluster.addTx(self.testDict["qrs"])
         cluster.addTx(self.testDict["tuv"])
 
@@ -65,7 +65,7 @@ class TestBlockbuilder(unittest.TestCase):
         mempool = Mempool()
         mempool.fromTXT('data/sibling-test-txt')
 
-        builder = blockbuilder.Blockbuilder(mempool)
+        builder = csbb.CandidateSetBlockbuilder(mempool)
         selectedTxs = builder.buildBlockTemplate()
         print(str(selectedTxs))
 
@@ -109,7 +109,7 @@ class TestBlockbuilder(unittest.TestCase):
     def test_get_representative_tx(self):
         print("repTx")
         self.assertEqual(
-                blockbuilder.getRepresentativeTxid(["qrs", "nop", "tuv"]),
+                csbb.getRepresentativeTxid(["qrs", "nop", "tuv"]),
                 "nop",
                 "Should be nop"
             )
@@ -164,7 +164,7 @@ class TestBlockbuilder(unittest.TestCase):
         mempool = Mempool()
         mempool.fromDict(self.testDict)
 
-        builder = blockbuilder.Blockbuilder(mempool)
+        builder = csbb.CandidateSetBlockbuilder(mempool)
         selectedTxs = builder.buildBlockTemplate()
         print(str(selectedTxs))
 
@@ -174,7 +174,7 @@ class TestBlockbuilder(unittest.TestCase):
     def test_build_block_template_empty_mempool(self):
         mempool = Mempool()
         mempool.fromDict({})
-        builder = blockbuilder.Blockbuilder(mempool)
+        builder = csbb.CandidateSetBlockbuilder(mempool)
         selectedTxs = builder.buildBlockTemplate()
 
     def test_drop_tx(self):

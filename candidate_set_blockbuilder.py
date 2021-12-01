@@ -42,7 +42,7 @@ def main(argv):
     endTime = time.time()
     logging.info('Elapsed time: ' + str(endTime - startTime))
 
-class Blockbuilder():
+class CandidateSetBlockbuilder():
     def __init__(self, mempool, weightLimit=3992820):
         self.mempool = mempool
         self.refMempool = Mempool()
