@@ -44,8 +44,9 @@ class TestBlockbuilder(unittest.TestCase):
     def build_chain_test_cluster(self):
         mempool = Mempool()
         mempool.fromTXT('data/chain-test-txt')
-        mempool.cluster(4000000)
-        cluster = list(mempool.clusters.values())[0]
+        bb = csbb.CandidateSetBlockbuilder(mempool, 4000000)
+        bb.cluster(4000000)
+        cluster = list(bb.clusters.values())[0]
         return cluster
 
     def test_get_best_candidate_set_from_chain(self):
@@ -56,8 +57,9 @@ class TestBlockbuilder(unittest.TestCase):
     def test_get_best_candidate_set_from_siblings(self):
         mempool = Mempool()
         mempool.fromTXT('data/sibling-test-txt')
-        mempool.cluster(4000000)
-        cluster = list(mempool.clusters.values())[0]
+        bb = csbb.CandidateSetBlockbuilder(mempool, 4000000)
+        bb.cluster(4000000)
+        cluster = list(bb.clusters.values())[0]
         best = cluster.getBestCandidateSet(4000000)
         self.assertEqual(sorted(list(best.txs.keys())), ['06447a0e3dc38315188fc177907aa44417dfdd3e9ff41c5c50dc4447348852fa', '52613203575dc68fe20557c74776e909caede0c64ec75e4cc418461b6fc63777', '550ee342c094d95e5f9df931bdc5d86ab5eb0b4abdc9cfd137ceacef605ad69f', '64975313b72229a42d8a46fd45c3c3934f40751abc01a7d7067d9f472bc64ff2', 'b5ba0f7d66b424dcadea561555e1dc4aa20e694271f8db1d046065c92a8861bd', 'bf4a1a9d9844398a96cb6b57f5d2d65bc97c1c2314141bf9db857afa77a38971', 'da049e0b90cbff900678c44eb6b87d8be3c4c32b617862b5df6ddcb1a54991f6', 'f4745ca47ce9c552db574e36744d7f3f3bf961fd03541c8ba4c31f1ee86e243c'])
 
@@ -122,11 +124,12 @@ class TestBlockbuilder(unittest.TestCase):
                 "Should be ['123','abc']"
             )
 
-    def test_mempool_cluster(self):
-        print("Start mempool.cluster")
+    def test_csbb_cluster(self):
+        print("Start csbb.cluster")
         mempool = Mempool()
         mempool.fromDict(self.testDict)
-        clusters = mempool.cluster(4000000)
+        bb = csbb.CandidateSetBlockbuilder(mempool)
+        clusters = bb.cluster(4000000)
         self.assertEqual(
                 list(clusters["123"].txs.keys()),
                 ["123", "abc"]
@@ -144,7 +147,8 @@ class TestBlockbuilder(unittest.TestCase):
         mempool = Mempool()
         mempool.fromDict(self.testDict)
 
-        bestCandidateSet = mempool.popBestCandidateSet(4000000)
+        bb = csbb.CandidateSetBlockbuilder(mempool)
+        bestCandidateSet = bb.popBestCandidateSet(4000000)
         expectedTxids = ["nop", "qrs"]
 
         self.assertEqual(len(bestCandidateSet.txs), 2)
@@ -156,7 +160,8 @@ class TestBlockbuilder(unittest.TestCase):
         mempool = Mempool()
         mempool.fromDict(self.testDict)
 
-        bestCandidateSet = mempool.popBestCandidateSet(5)
+        bb = csbb.CandidateSetBlockbuilder(mempool)
+        bestCandidateSet = bb.popBestCandidateSet(5)
 
         self.assertEqual(bestCandidateSet, None)
 

@@ -49,6 +49,10 @@ class CandidateSetBlockbuilder(Blockbuilder):
         self.refMempool = Mempool()
         self.refMempool.fromDict(mempool.txs)
         self.selectedTxs = []
+        self.txsToBeClustered = {} # Bucket for transactions from used cluster
+        self.clusters = {}  # Maps representative txid to cluster
+        self.clusterHeap = [] # Heapifies clusters by bestCandidateSet
+        self.txClusterMap = {}  # Maps txid to its cluster
         # block limit is 4M weight units minus header of 80 bytes and coinbase of 700 wu
         # blockheaderSize = 4*80
         # coinbaseReserve = 700
@@ -56,11 +60,88 @@ class CandidateSetBlockbuilder(Blockbuilder):
         self.weightLimit = weightLimit
         self.availableWeight = self.weightLimit
 
+    def cluster(self, weightLimit):
+        if len(self.clusters) == 0:
+            for txid, tx in self.mempool.txs.items():
+                self.txsToBeClustered[txid] = tx
+        for txid, tx in self.txsToBeClustered.items():
+            if txid in self.txClusterMap.keys():
+                continue
+            logging.debug("Cluster tx: " + txid)
+            localCluster = Cluster(tx, weightLimit)
+            localClusterTxids = tx.getLocalClusterTxids()
+            while len(localClusterTxids) > 0:
+                nextTxid = localClusterTxids.pop()
+                if nextTxid in localCluster.txs.keys():
+                    continue
+                nextTx = self.mempool.getTx(nextTxid)
+                localCluster.addTx(nextTx)
+                localClusterTxids += nextTx.getLocalClusterTxids()
+            # Only calculate bestCandidateSet if the best feerate in clusters that bubbles to the top
+            self.clusters[localCluster.representative] = localCluster
+            for lct in localCluster.txs.keys():
+                self.txClusterMap[lct] = localCluster.representative
+            heapq.heappush(self.clusterHeap, localCluster)
+
+        logging.debug('finished cluster building')
+        self.txsToBeClustered = {}
+        return self.clusters
+
+    def popBestCandidateSet(self, weightLimit):
+        logging.debug("Called popBestCandidateSet with weightLimit " + str(weightLimit))
+        self.cluster(weightLimit)
+        bestCluster = heapq.heappop(self.clusterHeap) if len(self.clusterHeap) else None
+        bestCandidateSet = bestCluster.bestCandidate if bestCluster is not None else None
+        if 0 == len(self.clusterHeap):
+            # ensures bestCandidate of last cluster gets evaluated and included
+            bestCandidateSet = bestCluster.getBestCandidateSet(weightLimit) if bestCluster is not None else None
+        # If bestCandidateSet exceeds weightLimit, refresh bestCluster and get next best cluster
+        while (bestCandidateSet is None or bestCandidateSet.getWeight() > weightLimit) and len(self.clusterHeap) > 0:
+            # Update best candidate set in cluster with weight limit
+            if bestCandidateSet is not None:
+                logging.debug("bestCandidateSet " + str(bestCandidateSet) + " is over weight limit: " + str(weightLimit))
+            if bestCluster.getBestCandidateSet(weightLimit) is None:
+                # don't add bestCluster without candidateSet back to heap
+                bestCluster = heapq.heappop(self.clusterHeap)
+            else:
+                # add refreshed bestCluster back to heap then get best
+                bestCluster = heapq.heappushpop(self.clusterHeap, bestCluster)
+            bestCandidateSet = bestCluster.bestCandidate
+
+        if bestCandidateSet is not None and bestCandidateSet.getWeight() > weightLimit:
+            bestCandidateSet = None
+
+        logging.debug("best candidate from all clusters: " + str(bestCandidateSet))
+
+        if bestCandidateSet is None:
+            logging.debug("Block finished")
+        else:
+            # delink bestCandidateSet from remaining cluster
+            bestCluster.removeCandidateSetLinks(bestCandidateSet)
+            # remove cluster mapping for transactions in cluster
+            for txid, tx in bestCluster.txs.items():
+                self.txClusterMap.pop(txid)
+                if txid in bestCandidateSet.txs.keys():
+                    # remove bestCandidateSet from mempool
+                    self.mempool.txs.pop(txid)
+                else:
+                    # stage other txs for clustering in mempool
+                    self.txsToBeClustered[txid] = tx
+
+            # delete modified cluster for recreation next round
+            self.clusters.pop(bestCluster.representative)
+
+        return bestCandidateSet
+
     def buildBlockTemplate(self):
         logging.info("Building blocktemplate...")
+        for txid, tx in self.mempool.txs.items():
+            self.txsToBeClustered[txid] = tx
+        self.cluster(self.weightLimit)
+
         while len(self.mempool.txs) > 0 and self.availableWeight > 0:
             logging.debug("Weight left: " + str(self.availableWeight))
-            bestCandidateSet = self.mempool.popBestCandidateSet(self.availableWeight)
+            bestCandidateSet = self.popBestCandidateSet(self.availableWeight)
             if bestCandidateSet is None or len(bestCandidateSet.txs) == 0:
                 break
             txsIdsToAdd = list(bestCandidateSet.txs.keys())
