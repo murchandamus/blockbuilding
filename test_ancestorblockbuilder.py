@@ -15,15 +15,6 @@ class TestBlockbuilderByAnces(unittest.TestCase):
             "xyz": transaction.Transaction("xyz", 10, 10, [], [])
         }
 
-    def test_get_ancestors(self):
-        mp = Mempool()
-        mp.fromDict(self.testDict)
-
-        ancBlockBuilder = BlockbuilderByAnces(mp)
-        ancestors = ancBlockBuilder.getAncestors(self.testDict["tuv"])
-
-        self.assertEqual(ancestors, ["nop", "qrs", "tuv"])
-
 
 if __name__ == '__main__':
     unittest.main()

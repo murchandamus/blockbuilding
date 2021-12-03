@@ -23,7 +23,7 @@ class Transaction():
         txRep = { 'fee': self.fee, 'weight': self.weight, 'spentby': self.children, 'depends': self.parents }
         return txRep
 
-    def getEffectiveFeerate(self):
+    def getFeerate(self):
         if not self.feerate:
             self.feerate = self.fee / self.weight
         return self.feerate
@@ -34,3 +34,5 @@ class Transaction():
     def __str__(self):
         return "{txid: " + self.txid + ", children: " + str(self.children) + ", parents: " + str(self.parents) + ", fee: " + str(self.fee) + ", weight: " + str(self.weight) + "}"
 
+
+# TODO: Add methods for sorting transaction by feerate

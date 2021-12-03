@@ -1,82 +1,78 @@
 from mempool import Mempool
 from abstract_builder import Blockbuilder
 from collections import OrderedDict
+from ancestor_set import AncestorSet
+import logging
 
+import heapq
 
 class BlockbuilderByAnces(Blockbuilder):
     def __init__(self, mempool, weightLimit=3992820):
         self.mempool = mempool
         self.refMempool = Mempool()
-        #self.refMempool.fromDict(mempool.txs)
+        self.refMempool.fromDict(mempool.txs)
         self.selectedTxs = []
-        self.weightLimit = weightLimit
-        self.availableWeight = self.weightLimit
-
-    def getAncestors(self, tx, depth=0):
-        """ From John's Solution
-        Returns: list of (ancestor, depth) tuples.
-        Ancestors may appear more than once in an ancestor tree, including with different depths.
-        Sorting by descending depth and deduping implies no descendant appears before its ancestor."""
-        ancestors = [(self.mempool.txs[tx.txid], depth)]
-        for parent in self.mempool.txs[tx.txid].parents:
-            ancestors += self.getAncestors(self.mempool.txs[parent], depth + 1)
-        if depth > 0:
-            return ancestors
-        ret = []
-        for ancestor, _ in sorted(ancestors, key=lambda ad: ad[1], reverse=True):
-            if ancestor not in ret:
-                ret.append(self.mempool.txs[ancestor.txid].txid)
-        return ret
-
-
-    def preprocessMempool(self, txs):
-        for tx in txs:
-            # Calculate ancestors for each tx
-            self.mempool.txs[tx].ancestors = self.getAncestors(self.mempool.txs[tx], 0)
-            self.mempool.txs[tx].ancestor_fee = sum([self.mempool.txs[ancestor_txid].fee for ancestor_txid in self.mempool.txs[tx].ancestors])
-            self.mempool.txs[tx].ancestor_weight = sum([self.mempool.txs[ancestor_txid].weight for ancestor_txid in self.mempool.txs[tx].ancestors])
-            self.mempool.txs[tx].ancestor_feerate = self.mempool.txs[tx].ancestor_fee / self.mempool.txs[tx].ancestor_weight
-            for anc in [self.mempool.txs[a].txid for a in self.mempool.txs[tx].ancestors if self.mempool.txs[a].txid != self.mempool.txs[tx].txid]:
-                txs[anc].descendants.append(tx)
-
-            # Reorder transactions by ancestor_feerate
-        return OrderedDict(sorted(txs.items(), key=lambda tx: tx[1].ancestor_feerate, reverse=True))
-
+        self.availableWeight = weightLimit
+        self.ancestorSets = []
+        self.txAncestorSetMap = {}
 
     def buildBlockTemplate(self):
-        txs = self.preprocessMempool(self.mempool.txs)
+        # TODO: Heapify transactions by transaction feerate, only calculate ancestorfeerate when transaction bubbles to the top.
+        # TODO: If transaction with ancestor feerate bubbles up, include in block
+        logging.info("Building blocktemplate...")
 
-        block = []
+        for txid, tx in self.mempool.txs.items():
+            # Initialize all AncestorSets just with tx itself
+            ancestorSet = AncestorSet(tx)
+            heapq.heappush(self.ancestorSets, ancestorSet)
+            self.txAncestorSetMap[txid] = ancestorSet
 
-        def remove_from_pool(tx):
-            for desc in set(self.mempool.txs[tx].descendants):
-                self.mempool.txs[desc].ancestor_fee -= self.mempool.txs[tx].fee
-                self.mempool.txs[desc].ancestor_weight -= self.mempool.txs[tx].weight
-                self.mempool.txs[desc].ancestor_feerate = txs[desc].ancestor_fee / txs[desc].ancestor_weight
-                self.mempool.txs[desc].ancestors.remove(tx)
-
-        while txs:
-            # Pop first transaction from ordered dict
-            tx = next(iter(txs.values()))
-            if  tx.ancestor_weight > self.availableWeight:
-                # Package won't fit in block
-                txs.pop(tx.txid)
+        while(len(self.ancestorSets) > 0):
+            bestAncestorSet = heapq.heappop(self.ancestorSets)
+            if bestAncestorSet.isObsolete:
+                # execute lazy delete
                 continue
-            # Add all unincluded package txs to block
-            # print("including package {}: {}".format(tx.txid, ','.join([a.txid for a in tx.ancestors])))
-            ancestors = [a for a in tx.ancestors]
-            for ancestor in ancestors:
-                if self.mempool.txs[ancestor].txid not in txs:
-                    print('Missing ancestor: ' + self.mempool.txs[ancestor].txid)
-                    assert False
-                remove_from_pool(ancestor)
-                block.append(txs.pop(self.mempool.txs[ancestor].txid).txid)
-                self.availableWeight -= self.mempool.txs[ancestor].weight
-            # Resort list
-            txs = OrderedDict(sorted(txs.items(), key=lambda tx: tx[1].ancestor_feerate, reverse=True))
-            continue  # Break into outer loop. Restart iteration over all unincluded txs
+            elif not bestAncestorSet.isComplete:
+                # Update incomplete AncestorSets lazily when relevant
+                missing_ancestors = []
+                for txid in bestAncestorSet.getAncestorTxids():
+                    missing_ancestors.append(self.mempool.txs[txid])
+                bestAncestorSet.update(missing_ancestors)
+                heapq.heappush(self.ancestorSets, bestAncestorSet)
+            elif bestAncestorSet.isComplete:
+                # Complete AncestorSet has highest feerate 
+                if bestAncestorSet.getWeight() > self.availableWeight:
+                    # Doesn't fit in the block, discard
+                    continue
+                else:
+                    # Add to block
+                    txsIdsToAdd = list(bestAncestorSet.txs.keys())
+                    while len(txsIdsToAdd) > 0:
+                        for txid in txsIdsToAdd:
+                            if set(self.refMempool.txs[txid].parents).issubset(set(self.selectedTxs)):
+                                self.selectedTxs.append(bestCandidateSet.txs[txid].txid)
+                                txsIdsToAdd.remove(txid)
+                    self.availableWeight = self.availableWeight - bestAncestorSet.getWeight()
 
-        return block
+                    remainingDescendants = bestAncestorSet.getAllDescendants()
+
+                    for d in remainingDescendants:
+                        descendantAncestorSet = self.txAncestorSetMap[d]
+                        if descendantAncestorSet.isComplete:
+                            # lazy delete and add stub as replacement
+                            descendantAncestorSet.isObsolete = True
+                            replacement = AncestorSet(self.mempool.txs[d])
+                            self.txAncestorSetMap[d] = replacement
+                            heapq.heappush(self.ancestorSets, replacement)
+
+                    for txid in txids:
+                        # lazy delete ancestor sets corresponding to included set
+                        if txid in self.txAncestorSetMap.keys():
+                            txAncestorSetMap[txid].isObsolete = True
+                        self.mempool.removeConfirmedTx(txid)
+
+        return self.selectedTxs
+
 
     def outputBlockTemplate(self, blockId=""):
         raise Exception("not implemented")

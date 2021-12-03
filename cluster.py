@@ -127,6 +127,7 @@ class Cluster():
         searchHeap = [] # candidates that still need to be evaluated
 
         for txid in self.eligibleTxs.keys():
+            #TODO: sort transactions by feerate, stop seeding candidate sets when feerate of transaction is smaller than the setfeerate of bestCand
             cand = self.assembleAncestry(txid)
             if cand.getWeight() <= self.weightLimit:
                 if bestCand is None or bestCand.getEffectiveFeerate() < cand.getEffectiveFeerate() or (bestCand.getEffectiveFeerate() == cand.getEffectiveFeerate() and bestCand.getWeight() < cand.getWeight()):
@@ -171,5 +172,7 @@ class Cluster():
     def removeCandidateSetLinks(self, candidateSet):
         for tx in self.txs.values():
             tx.parents = [t for t in tx.parents if t not in candidateSet.txs.keys()]
+            tx.ancestors = [t for t in tx.ancestors if t not in candidateSet.txs.keys()]
             tx.children = [t for t in tx.children if t not in candidateSet.txs.keys()]
+            tx.descendants = [t for t in tx.descendants if t not in candidateSet.txs.keys()]
 

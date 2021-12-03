@@ -88,6 +88,7 @@ class CandidateSetBlockbuilder(Blockbuilder):
         return self.clusters
 
     def popBestCandidateSet(self, weightLimit):
+        # TODO: Don't cluster until an unclustered transaction bubbles up to highest feerate, then find that cluster and the corresponding champion
         logging.debug("Called popBestCandidateSet with weightLimit " + str(weightLimit))
         self.cluster(weightLimit)
         bestCluster = heapq.heappop(self.clusterHeap) if len(self.clusterHeap) else None
