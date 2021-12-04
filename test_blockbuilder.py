@@ -171,7 +171,8 @@ class TestBlockbuilder(unittest.TestCase):
 
         builder = csbb.CandidateSetBlockbuilder(mempool)
         selectedTxs = builder.buildBlockTemplate()
-        print(str(selectedTxs))
+        resultingBlock = str(selectedTxs)
+        self.assertEqual("['nop', 'qrs', '123', 'abc', 'tuv', 'xyz']", resultingBlock)
 
     def test_output_block_template(self):
         print("not tested yet")

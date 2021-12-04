@@ -16,5 +16,16 @@ class TestBlockbuilderByAnces(unittest.TestCase):
         }
 
 
+
+    def test_build_block_template(self):
+        self.mempool = Mempool()
+        self.mempool.fromDict(self.testDict)
+        builder = BlockbuilderByAnces(self.mempool)
+        selectedTxs = builder.buildBlockTemplate()
+        resultingBlock = str(selectedTxs)
+
+        self.assertEqual("['nop', 'qrs', '123', 'abc', 'tuv', 'xyz']", resultingBlock)
+
+
 if __name__ == '__main__':
     unittest.main()

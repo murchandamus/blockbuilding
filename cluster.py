@@ -11,7 +11,7 @@ class Cluster():
         self.txs = {tx.txid: tx}
         self.ancestorSets = None
         self.bestCandidate = None
-        self.bestFeerate = tx.getEffectiveFeerate()
+        self.bestFeerate = tx.getFeerate()
         self.weightLimit = weightLimit
         self.eligibleTxs = {tx.txid: tx}
         self.uselessTxs = {}
@@ -34,7 +34,7 @@ class Cluster():
         self.txs[tx.txid] = tx
         self.eligibleTxs[tx.txid] = tx
         self.representative = min(tx.txid, self.representative)
-        self.bestFeerate = max(self.bestFeerate, tx.getEffectiveFeerate())
+        self.bestFeerate = max(self.bestFeerate, tx.getFeerate())
 
     def __lt__(self, other):
         if self.bestFeerate == other.bestFeerate:
@@ -74,7 +74,7 @@ class Cluster():
             nothingChanged = True
             prune = []
             for txid, tx in self.eligibleTxs.items():
-                if tx.getEffectiveFeerate() >= bestFeerate:
+                if tx.getFeerate() >= bestFeerate:
                     continue
                 if len(tx.children) == 0:
                     # can never be part of best candidate set, due to low feerate and no children
@@ -101,7 +101,7 @@ class Cluster():
                 continue
             # Skip children of lower feerate than candidate set without children
             descendant = self.txs[d]
-            descendantFeeRate = descendant.getEffectiveFeerate()
+            descendantFeeRate = descendant.getFeerate()
             # Ensure this is a new dictionary instead of modifying an existing
             expandedSetTxs = {descendant.txid: descendant}
             # Add ancestry
@@ -171,8 +171,8 @@ class Cluster():
 
     def removeCandidateSetLinks(self, candidateSet):
         for tx in self.txs.values():
-            tx.parents = [t for t in tx.parents if t not in candidateSet.txs.keys()]
-            tx.ancestors = [t for t in tx.ancestors if t not in candidateSet.txs.keys()]
+            #tx.parents = [t for t in tx.parents if t not in candidateSet.txs.keys()]
+            #tx.ancestors = [t for t in tx.ancestors if t not in candidateSet.txs.keys()]
             tx.children = [t for t in tx.children if t not in candidateSet.txs.keys()]
             tx.descendants = [t for t in tx.descendants if t not in candidateSet.txs.keys()]
 

@@ -16,6 +16,8 @@ class Mempool():
         self.blockId = blockId
         for txid, tx in txDict.items():
             self.txs[txid] = tx
+        # backfill children from parents
+        self.backfill_relatives()
 
     def fromJSON(self, filePath):
         txsJSON = {}
@@ -33,6 +35,8 @@ class Mempool():
                 )
                 self.txs[txid] = tx
         import_file.close()
+        # backfill children from parents
+        self.backfill_relatives()
 
     def fromTXT(self, filePath, SplitBy=" "):
         logging.info("Loading mempool from " + filePath)
@@ -64,10 +68,11 @@ class Mempool():
                 allAncestors.add(ancestor)
                 furtherAncestors = self.txs[ancestor].parents + self.txs[ancestor].ancestors
                 searchList = list(set(searchList + furtherAncestors))
-            tx.ancestors = list(allAncestors)
+            tx.ancestors = list(set(allAncestors))
 
             nonParentAncestors = set()
             for a in tx.ancestors:
+                self.txs[a].descendants.append(tx.txid)
                 nonParentAncestors.update(set(self.txs[a].ancestors).intersection(set(tx.ancestors)))
             tx.parents = list(set(tx.ancestors) - nonParentAncestors)
             for p in tx.parents:
@@ -85,6 +90,7 @@ class Mempool():
 
     def removeConfirmedTx(self, txid):
         for d in self.txs[txid].descendants:
+            print("Remove confirmed tx: "  + txid + " from " + d)
             if d in self.txs.keys():
                 if txid in self.txs[d].parents:
                     self.txs[d].parents.remove(txid)
@@ -105,8 +111,8 @@ class Mempool():
             if a in self.txs.keys():
                 if txid in self.txs[a].descendants:
                     self.txs[a].descendants.remove(txid)
-                if txid in self.txs[p].children:
-                    self.txs[p].children.remove(txid)
+                if txid in self.txs[a].children:
+                    self.txs[a].children.remove(txid)
 
         for p in self.txs[txid].parents:
             if p in self.txs.keys():

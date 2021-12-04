@@ -4,12 +4,12 @@
 
 class AncestorSet():
     def __init__(self, rep):
-        self.rep = rep.txid
+        self.rep = rep
         self.txs = {rep.txid: rep}
         self.isComplete = False
         self.isObsolete = False
-        self.weight = rep.weight
-        self.feerate = rep.getFeerate()
+        self.weight = -1
+        self.feerate = -1
         self.hash = None
 
     def __repr__(self):
@@ -34,10 +34,11 @@ class AncestorSet():
         return self.getFeerate() > other.getFeerate()
 
     def update(self, txs):
+        print("Updating AncestorSet " + str(self) + " with " + str(txs))
+        self.weight = -1
+        self.feerate = -1
         for tx in txs:
             self.txs[tx.txid] = tx
-        self.getWeight()
-        self.getFeerate()
         self.isComplete = True
 
     def getWeight(self):
@@ -54,15 +55,19 @@ class AncestorSet():
         return self.feerate
 
     def getAncestorTxids(self):
-        return self.txs[self.rep].ancestors
+        return self.rep.ancestors
 
     def getAllDescendants(self):
+        print("getAllDescendants for: " + str(self))
         allDescendants = []
-        for tx in self.txs:
+        for tx in self.txs.values():
             allDescendants = allDescendants + tx.descendants
 
-        return list(set(allDescendants) - set(self.txs.keys()))
+        print("allDescendants for " + str(self) + ":" + str(allDescendants))
+        withoutSelf = list(set(allDescendants) - set(self.txs.keys()))
+        print("allDescendants for " + str(self) + "after removing self:" + str(withoutSelf))
+        return withoutSelf
 
     def __str__(self):
-        return "{txid: " + str(self.rep.txid) + " feerate: " + str(self.getFeerate()) + ", txs: "+ str(list(self.txs.keys())) + "}"
+        return "{txid: " + str(self.rep.txid) + " feerate: " + str(self.getFeerate()) + ", txs: "+ str(list(self.txs.keys())) + " isComplete: " + str(self.isComplete) + "}"
 

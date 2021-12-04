@@ -24,6 +24,7 @@ class BlockbuilderByAnces(Blockbuilder):
         for txid, tx in self.mempool.txs.items():
             # Initialize all AncestorSets just with tx itself
             ancestorSet = AncestorSet(tx)
+            print("AncestorSet created: " + str(ancestorSet))
             heapq.heappush(self.ancestorSets, ancestorSet)
             self.txAncestorSetMap[txid] = ancestorSet
 
@@ -33,10 +34,12 @@ class BlockbuilderByAnces(Blockbuilder):
                 # execute lazy delete
                 continue
             elif not bestAncestorSet.isComplete:
+                print("backfilling: " + str(bestAncestorSet))
                 # Update incomplete AncestorSets lazily when relevant
                 missing_ancestors = []
                 for txid in bestAncestorSet.getAncestorTxids():
                     missing_ancestors.append(self.mempool.txs[txid])
+                print("Missing ancestors: " + str(missing_ancestors))
                 bestAncestorSet.update(missing_ancestors)
                 heapq.heappush(self.ancestorSets, bestAncestorSet)
             elif bestAncestorSet.isComplete:
@@ -47,16 +50,19 @@ class BlockbuilderByAnces(Blockbuilder):
                 else:
                     # Add to block
                     txsIdsToAdd = list(bestAncestorSet.txs.keys())
+                    print("txsIdsToAdd: " + str(txsIdsToAdd))
                     while len(txsIdsToAdd) > 0:
                         for txid in txsIdsToAdd:
+                            print("Try adding txid: " + str(txid))
                             if set(self.refMempool.txs[txid].parents).issubset(set(self.selectedTxs)):
-                                self.selectedTxs.append(bestCandidateSet.txs[txid].txid)
+                                self.selectedTxs.append(txid)
                                 txsIdsToAdd.remove(txid)
-                    self.availableWeight = self.availableWeight - bestAncestorSet.getWeight()
+                    self.availableWeight -= bestAncestorSet.getWeight()
 
                     remainingDescendants = bestAncestorSet.getAllDescendants()
 
                     for d in remainingDescendants:
+                        print("Stubbing remaining descendant: " + str(d))
                         descendantAncestorSet = self.txAncestorSetMap[d]
                         if descendantAncestorSet.isComplete:
                             # lazy delete and add stub as replacement
@@ -65,10 +71,10 @@ class BlockbuilderByAnces(Blockbuilder):
                             self.txAncestorSetMap[d] = replacement
                             heapq.heappush(self.ancestorSets, replacement)
 
-                    for txid in txids:
+                    for txid in bestAncestorSet.txs.keys():
                         # lazy delete ancestor sets corresponding to included set
                         if txid in self.txAncestorSetMap.keys():
-                            txAncestorSetMap[txid].isObsolete = True
+                            self.txAncestorSetMap[txid].isObsolete = True
                         self.mempool.removeConfirmedTx(txid)
 
         return self.selectedTxs

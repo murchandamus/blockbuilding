@@ -146,10 +146,11 @@ class CandidateSetBlockbuilder(Blockbuilder):
             if bestCandidateSet is None or len(bestCandidateSet.txs) == 0:
                 break
             txsIdsToAdd = list(bestCandidateSet.txs.keys())
-            while len(txsIdsToAdd) != 0:
+            while len(txsIdsToAdd) > 0:
                 for txid in txsIdsToAdd:
+                    print("Try adding txid: " + str(txid))
                     if set(self.refMempool.txs[txid].parents).issubset(set(self.selectedTxs)):
-                        self.selectedTxs.append(bestCandidateSet.txs[txid].txid)
+                        self.selectedTxs.append(txid)
                         txsIdsToAdd.remove(txid)
             self.availableWeight -= bestCandidateSet.getWeight()
 
