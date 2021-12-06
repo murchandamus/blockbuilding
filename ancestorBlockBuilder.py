@@ -16,17 +16,19 @@ class BlockbuilderByAnces(Blockbuilder):
         self.ancestorSets = []
         self.txAncestorSetMap = {}
 
-    def buildBlockTemplate(self):
-        # TODO: Heapify transactions by transaction feerate, only calculate ancestorfeerate when transaction bubbles to the top.
-        # TODO: If transaction with ancestor feerate bubbles up, include in block
-        logging.info("Building blocktemplate...")
-
+    def initialize_stubs(self):
         for txid, tx in self.mempool.txs.items():
             # Initialize all AncestorSets just with tx itself
             ancestorSet = AncestorSet(tx)
             print("AncestorSet created: " + str(ancestorSet))
             heapq.heappush(self.ancestorSets, ancestorSet)
             self.txAncestorSetMap[txid] = ancestorSet
+
+    def buildBlockTemplate(self):
+        # TODO: Heapify transactions by transaction feerate, only calculate ancestorfeerate when transaction bubbles to the top.
+        # TODO: If transaction with ancestor feerate bubbles up, include in block
+        logging.info("Building blocktemplate...")
+        initialize_stubs()
 
         while(len(self.ancestorSets) > 0):
             bestAncestorSet = heapq.heappop(self.ancestorSets)
@@ -43,7 +45,7 @@ class BlockbuilderByAnces(Blockbuilder):
                 bestAncestorSet.update(missing_ancestors)
                 heapq.heappush(self.ancestorSets, bestAncestorSet)
             elif bestAncestorSet.isComplete:
-                # Complete AncestorSet has highest feerate 
+                # Complete AncestorSet has highest feerate
                 if bestAncestorSet.getWeight() > self.availableWeight:
                     # Doesn't fit in the block, discard
                     continue

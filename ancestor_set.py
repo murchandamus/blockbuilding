@@ -59,12 +59,12 @@ class AncestorSet():
 
     def getAllDescendants(self):
         print("getAllDescendants for: " + str(self))
-        allDescendants = []
+        allDescendants = set()
         for tx in self.txs.values():
-            allDescendants = allDescendants + tx.descendants
+            allDescendants = allDescendants | set(tx.descendants)
 
         print("allDescendants for " + str(self) + ":" + str(allDescendants))
-        withoutSelf = list(set(allDescendants) - set(self.txs.keys()))
+        withoutSelf = list(allDescendants - set(self.txs.keys()))
         print("allDescendants for " + str(self) + "after removing self:" + str(withoutSelf))
         return withoutSelf
 

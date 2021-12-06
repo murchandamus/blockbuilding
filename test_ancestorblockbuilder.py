@@ -15,7 +15,16 @@ class TestBlockbuilderByAnces(unittest.TestCase):
             "xyz": transaction.Transaction("xyz", 10, 10, [], [])
         }
 
+    def test_initialize_stubs(self):
+        self.mempool = Mempool()
+        self.mempool.fromDict(self.testDict)
+        builder = BlockbuilderByAnces(self.mempool)
+        builder.initialize_stubs()
 
+        self.assertEqual(len(builder.ancestorSets), len(self.testDict.txs))
+        self.assertEqual(len(builder.txAncestorSetMap), len(self.testDict.txs))
+        nopAS = builder.txAncestorSetMap[nop]
+        self.assertFalse(nopAS.isComplete)
 
     def test_build_block_template(self):
         self.mempool = Mempool()
