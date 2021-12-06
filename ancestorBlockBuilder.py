@@ -2,9 +2,38 @@ from mempool import Mempool
 from abstract_builder import Blockbuilder
 from collections import OrderedDict
 from ancestor_set import AncestorSet
+from candidateset import CandidateSet
 import logging
 
 import heapq
+
+def main(argv):
+    mempoolfilepath = ''
+    try:
+        opts, args = getopt.getopt(argv, "hm:", ["mempoolfile="])
+    except getopt.GetoptError:
+        print ('blockbuilder.py -m <mempoolfile>')
+        sys.exit(2)
+    for opt, arg in opts:
+        if opt == '-h':
+            print ('blockbuilder.py -m <mempoolfile>')
+            sys.exit()
+        elif opt in ("-m", "--mempoolfile"):
+            mempoolfilepath = arg
+        print ('Mempool file is "', mempoolfilepath)
+
+    if mempoolfilepath is '':
+        print ('Missing mempool file path: blockbuilder.py -m <mempoolfile>')
+        sys.exit(2)
+
+    startTime = time.time()
+    mempool = Mempool()
+    mempool.fromTXT(mempoolfilepath)
+    bb = BlockbuilderByAnces(mempool)
+    bb.buildBlockTemplate()
+    bb.outputBlockTemplate(mempool.blockId)
+    endTime = time.time()
+    logging.info('Elapsed time: ' + str(endTime - startTime))
 
 class BlockbuilderByAnces(Blockbuilder):
     def __init__(self, mempool, weightLimit=3992820):
@@ -93,10 +122,29 @@ class BlockbuilderByAnces(Blockbuilder):
         return self.selectedTxs
 
     def outputBlockTemplate(self, blockId=""):
-        raise Exception("not implemented")
+        filePath = "results/"
+        if blockId is not None and blockId != "":
+            filePath += str(blockId) + '-'
+        date_now = datetime.datetime.now()
+        filePath += date_now.isoformat()
+
+        filePath += '.byancestors'
+        with open(filePath, 'w') as output_file:
+            logging.debug(self.selectedTxs)
+            if len(self.selectedTxs) > 0:
+                # TODO: Implement generic transaction set instead of this misuse
+                selected = CandidateSet({txid: self.refMempool.txs[txid] for txid in self.selectedTxs})
+                output_file.write('CreateNewBlockByAncestors(): fees ' + str(selected.getFees()) +
+                                  ' weight ' + str(selected.getWeight()) + ' size limit ' +
+                                  str(self.weightLimit) +'\n')
+            else:
+                output_file.write('CreateNewBlockByAncestors(): fees ' + '0' +
+                                  ' weight ' + '0' + ' size limit ' +
+                                  str(self.weightLimit) +'\n')
+
+            for tx in self.selectedTxs:
+                output_file.write(tx + '\n')
+        output_file.close()
 
 if __name__ == '__main__':
-    mempool = bb.Mempool()
-    mempool.fromTXT("monthTest/100124-000123.mempool")
-    builder = BlockbuilderByAnces(mempool)
-    print("block is "+str(builder.buildBlockTemplate(100000)))
+    main(sys.argv[1:])

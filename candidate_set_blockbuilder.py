@@ -181,9 +181,6 @@ class CandidateSetBlockbuilder(Blockbuilder):
         output_file.close()
 
 
-
-# A set of transactions that forms a unit and may be added to a block as is
-
 def getRepresentativeTxid(txids):
     txids.sort()
     return txids[0]
