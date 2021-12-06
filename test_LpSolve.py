@@ -1,5 +1,5 @@
 import unittest
-import candidate_set_blockbuilder as bb
+import candidate_builder as bb
 import LpSolve as lp
 from collections import Counter
 

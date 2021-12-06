@@ -29,13 +29,13 @@ def main(argv):
     startTime = time.time()
     mempool = Mempool()
     mempool.fromTXT(mempoolfilepath)
-    bb = BlockbuilderByAnces(mempool)
+    bb = AncestorSetBlockbuilder(mempool)
     bb.buildBlockTemplate()
     bb.outputBlockTemplate(mempool.blockId)
     endTime = time.time()
     logging.info('Elapsed time: ' + str(endTime - startTime))
 
-class BlockbuilderByAnces(Blockbuilder):
+class AncestorSetBlockbuilder(Blockbuilder):
     def __init__(self, mempool, weightLimit=3992820):
         self.mempool = mempool
         self.refMempool = Mempool()

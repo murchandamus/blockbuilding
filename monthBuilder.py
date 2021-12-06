@@ -1,4 +1,4 @@
-import candidate_set_blockbuilder as bb
+import candidate_builder as bb
 import os
 import logging
 from os.path import isfile, join

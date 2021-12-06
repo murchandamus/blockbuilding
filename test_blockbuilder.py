@@ -1,5 +1,5 @@
 import unittest
-import candidate_set_blockbuilder as csbb
+import candidate_builder as csbb
 from mempool import Mempool
 
 class TestBlockbuilder(unittest.TestCase):
