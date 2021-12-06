@@ -169,10 +169,10 @@ class Cluster():
 
         return self.bestCandidate
 
+    # Used to remove ancestors that got included in block from transactions that remain in the mempool
     def removeCandidateSetLinks(self, candidateSet):
-        for tx in self.txs.values():
-            #tx.parents = [t for t in tx.parents if t not in candidateSet.txs.keys()]
-            #tx.ancestors = [t for t in tx.ancestors if t not in candidateSet.txs.keys()]
-            tx.children = [t for t in tx.children if t not in candidateSet.txs.keys()]
-            tx.descendants = [t for t in tx.descendants if t not in candidateSet.txs.keys()]
-
+        remainingTxids = self.txs.keys() - candidateSet.txs.keys()
+        for txid in remainingTxids:
+            tx =  self.txs[txid]
+            tx.parents = [t for t in tx.parents if t in remainingTxids]
+            tx.ancestors = [t for t in tx.ancestors if t in remainingTxids]
