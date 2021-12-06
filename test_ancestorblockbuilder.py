@@ -1,6 +1,7 @@
 import unittest
 import transaction
 from mempool import Mempool
+from ancestor_set import AncestorSet
 from ancestorBlockBuilder import BlockbuilderByAnces
 
 
@@ -21,10 +22,24 @@ class TestBlockbuilderByAnces(unittest.TestCase):
         builder = BlockbuilderByAnces(self.mempool)
         builder.initialize_stubs()
 
-        self.assertEqual(len(builder.ancestorSets), len(self.testDict.txs))
-        self.assertEqual(len(builder.txAncestorSetMap), len(self.testDict.txs))
-        nopAS = builder.txAncestorSetMap[nop]
+        self.assertEqual(len(builder.ancestorSets), len(self.testDict))
+        self.assertEqual(len(builder.txAncestorSetMap), len(self.testDict))
+        nopAS = builder.txAncestorSetMap['nop']
         self.assertFalse(nopAS.isComplete)
+
+    def test_backfill_incomplete_ancestor_set(self):
+        self.mempool = Mempool()
+        self.mempool.fromDict(self.testDict)
+        builder = BlockbuilderByAnces(self.mempool)
+
+        qrs_AS = AncestorSet(self.testDict['qrs'])
+        self.assertFalse(qrs_AS.isComplete)
+        self.assertEqual(len(qrs_AS.txs), 1)
+
+        builder.backfill_incomplete_ancestor_set(qrs_AS)
+        self.assertTrue(qrs_AS.isComplete)
+        self.assertEqual(len(qrs_AS.txs), 2)
+
 
     def test_build_block_template(self):
         self.mempool = Mempool()

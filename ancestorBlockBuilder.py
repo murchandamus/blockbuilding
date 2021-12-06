@@ -24,11 +24,23 @@ class BlockbuilderByAnces(Blockbuilder):
             heapq.heappush(self.ancestorSets, ancestorSet)
             self.txAncestorSetMap[txid] = ancestorSet
 
+    # Update incomplete AncestorSets lazily when relevant
+    def backfill_incomplete_ancestor_set(self, ancestor_set):
+        logging.debug("backfilling: " + str(ancestor_set))
+        if ancestor_set.isComplete:
+            raise ValueError("backfill_incomplete_ancestor_set called with complete AncestorSet: " + str(ancestor_set))
+        missing_ancestors = []
+        for txid in ancestor_set.getAncestorTxids():
+            missing_ancestors.append(self.mempool.txs[txid])
+        logging.debug("Missing ancestors: " + str(missing_ancestors))
+        ancestor_set.update(missing_ancestors)
+        heapq.heappush(self.ancestorSets, ancestor_set)
+
     def buildBlockTemplate(self):
         # TODO: Heapify transactions by transaction feerate, only calculate ancestorfeerate when transaction bubbles to the top.
         # TODO: If transaction with ancestor feerate bubbles up, include in block
         logging.info("Building blocktemplate...")
-        initialize_stubs()
+        self.initialize_stubs()
 
         while(len(self.ancestorSets) > 0):
             bestAncestorSet = heapq.heappop(self.ancestorSets)
@@ -36,14 +48,8 @@ class BlockbuilderByAnces(Blockbuilder):
                 # execute lazy delete
                 continue
             elif not bestAncestorSet.isComplete:
-                print("backfilling: " + str(bestAncestorSet))
-                # Update incomplete AncestorSets lazily when relevant
-                missing_ancestors = []
-                for txid in bestAncestorSet.getAncestorTxids():
-                    missing_ancestors.append(self.mempool.txs[txid])
-                print("Missing ancestors: " + str(missing_ancestors))
-                bestAncestorSet.update(missing_ancestors)
-                heapq.heappush(self.ancestorSets, bestAncestorSet)
+                # Update incomplete AncestorSets lazily when they bubble to the top
+                self.backfill_incomplete_ancestor_set(bestAncestorSet)
             elif bestAncestorSet.isComplete:
                 # Complete AncestorSet has highest feerate
                 if bestAncestorSet.getWeight() > self.availableWeight:
