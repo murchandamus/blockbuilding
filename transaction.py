@@ -34,5 +34,21 @@ class Transaction():
     def __str__(self):
         return "{txid: " + self.txid + ", children: " + str(self.children) + ", parents: " + str(self.parents) + ", fee: " + str(self.fee) + ", weight: " + str(self.weight) + "}"
 
+    def __repr__(self):
+        return "Transaction(%s)" % (self.txid)
 
-# TODO: Add methods for sorting transaction by feerate
+    def __eq__(self, other):
+        if isinstance(other, Transaction):
+            return self.txid == other.txid
+        return NotImplemented
+
+    def __lt__(self, other):
+        # Sort highest feerate first, use highest weight as tiebreaker
+        if self.getFeerate() == other.getFeerate():
+            return self.weight > other.weight
+        return self.getFeerate() > other.getFeerate()
+
+    def __hash__(self):
+        if self.hash is None:
+            self.hash = hash(self.__repr__())
+        return self.hash
