@@ -62,21 +62,21 @@ class Mempool():
         for tx in self.txs.values():
             # Backfill ancestors
             allAncestors = set()
-            searchList = list(set(tx.parents + tx.ancestors))
+            searchList = list(set(tx.parents) | set(tx.ancestors))
             while len(searchList) > 0:
                 ancestor = searchList.pop()
                 allAncestors.add(ancestor)
-                furtherAncestors = self.txs[ancestor].parents + self.txs[ancestor].ancestors
-                searchList = list(set(searchList + furtherAncestors))
+                furtherAncestors = set(self.txs[ancestor].parents) | set(self.txs[ancestor].ancestors)
+                searchList = list(set(searchList) | furtherAncestors)
             tx.ancestors = list(set(allAncestors))
 
             nonParentAncestors = set()
             for a in tx.ancestors:
-                self.txs[a].descendants.append(tx.txid)
+                self.txs[a].descendants.add(tx.txid)
                 nonParentAncestors.update(set(self.txs[a].ancestors).intersection(set(tx.ancestors)))
-            tx.parents = list(set(tx.ancestors) - nonParentAncestors)
+            tx.parents = set(tx.ancestors) - nonParentAncestors
             for p in tx.parents:
-                self.txs[p].children.append(tx.txid)
+                self.txs[p].children.add(tx.txid)
             if len(tx.ancestors) < len(tx.parents):
                 raise Exception("Fewer ancestors than parents")
 

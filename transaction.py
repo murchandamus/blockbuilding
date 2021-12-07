@@ -8,16 +8,16 @@ class Transaction():
         self.weight = int(weight)
         if parents is None:
             parents = []
-        self.parents = parents
+        self.parents = set([] + parents)
         if ancestors is None:
             ancestors = []
-        self.ancestors = ancestors
+        self.ancestors = set([] + ancestors)
         if children is None:
             children = []
-        self.children = children
+        self.children = set([] + children)
         if descendants is None:
             descendants = []
-        self.descendants = descendants
+        self.descendants = set([] + descendants)
 
     def createExportDict(self):
         txRep = { 'fee': self.fee, 'weight': self.weight, 'spentby': self.children, 'depends': self.parents }
@@ -29,7 +29,7 @@ class Transaction():
         return self.feerate
 
     def getLocalClusterTxids(self):
-        return list(set([self.txid] + self.children + self.parents))
+        return list(set([self.txid] + list(self.children) + list(self.parents)))
 
     def __str__(self):
         return "{txid: " + self.txid + ", children: " + str(self.children) + ", parents: " + str(self.parents) + ", fee: " + str(self.fee) + ", weight: " + str(self.weight) + "}"
