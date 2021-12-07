@@ -55,7 +55,7 @@ class Cluster():
             # collect all ancestors of txid
             tx = self.txs[txid]
             ancestry = {txid: tx}
-            searchList = [] + tx.parents
+            searchList = [] + list(tx.parents)
             while len(searchList) > 0:
                 ancestorTxid = searchList.pop()
                 if ancestorTxid not in ancestry.keys():

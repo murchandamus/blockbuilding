@@ -5,7 +5,11 @@ from ancestor_set import AncestorSet
 from candidateset import CandidateSet
 import logging
 
+import getopt
 import heapq
+import datetime
+import time
+import sys
 
 def main(argv):
     mempoolfilepath = ''
@@ -22,7 +26,7 @@ def main(argv):
             mempoolfilepath = arg
         print ('Mempool file is "', mempoolfilepath)
 
-    if mempoolfilepath is '':
+    if mempoolfilepath == '':
         print ('Missing mempool file path: blockbuilder.py -m <mempoolfile>')
         sys.exit(2)
 
@@ -42,6 +46,7 @@ class AncestorSetBlockbuilder(Blockbuilder):
         self.refMempool.fromDict(mempool.txs)
         self.selectedTxs = []
         self.availableWeight = weightLimit
+        self.weightLimit = weightLimit
         self.ancestorSets = []
         self.txAncestorSetMap = {}
 

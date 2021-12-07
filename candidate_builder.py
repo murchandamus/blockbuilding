@@ -4,7 +4,6 @@ import getopt
 import heapq
 import json
 import math
-from pathlib import Path
 import sys
 import time
 import logging
@@ -30,14 +29,14 @@ def main(argv):
             mempoolfilepath = arg
         print ('Mempool file is "', mempoolfilepath)
 
-    if mempoolfilepath is '':
+    if mempoolfilepath == '':
         print ('Missing mempool file path: blockbuilder.py -m <mempoolfile>')
         sys.exit(2)
 
     startTime = time.time()
     mempool = Mempool()
     mempool.fromTXT(mempoolfilepath)
-    bb = Blockbuilder(mempool)
+    bb = CandidateSetBlockbuilder(mempool)
     bb.buildBlockTemplate()
     bb.outputBlockTemplate(mempool.blockId)
     endTime = time.time()
@@ -148,7 +147,7 @@ class CandidateSetBlockbuilder(Blockbuilder):
             txsIdsToAdd = list(bestCandidateSet.txs.keys())
             while len(txsIdsToAdd) > 0:
                 for txid in txsIdsToAdd:
-                    print("Try adding txid: " + str(txid))
+                    logging.debug("Try adding txid: " + str(txid))
                     if set(self.refMempool.txs[txid].parents).issubset(set(self.selectedTxs)):
                         self.selectedTxs.append(txid)
                         txsIdsToAdd.remove(txid)
