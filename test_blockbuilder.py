@@ -44,54 +44,12 @@ class TestBlockbuilder(unittest.TestCase):
         best = cluster.getBestCandidateSet(4000000)
         self.assertEqual(sorted(list(best.txs.keys())), ['06447a0e3dc38315188fc177907aa44417dfdd3e9ff41c5c50dc4447348852fa', '52613203575dc68fe20557c74776e909caede0c64ec75e4cc418461b6fc63777', '550ee342c094d95e5f9df931bdc5d86ab5eb0b4abdc9cfd137ceacef605ad69f', '64975313b72229a42d8a46fd45c3c3934f40751abc01a7d7067d9f472bc64ff2', 'b5ba0f7d66b424dcadea561555e1dc4aa20e694271f8db1d046065c92a8861bd', 'bf4a1a9d9844398a96cb6b57f5d2d65bc97c1c2314141bf9db857afa77a38971', 'da049e0b90cbff900678c44eb6b87d8be3c4c32b617862b5df6ddcb1a54991f6', 'f4745ca47ce9c552db574e36744d7f3f3bf961fd03541c8ba4c31f1ee86e243c'])
 
-    def test_get_best_candidate_set_with_limit(self):
-        cluster = self.build_nop_cluster()
-        best = cluster.getBestCandidateSet(100)
-        self.assertEqual(list(best.txs.keys()), ["nop"])
-
-    def test_parse_from_TXT(self):
-        mempool = Mempool()
-        mempool.fromTXT("data/mempoolTXT")
-        txids = [
-            "01123eb3ec64c381ce29b98aa71a5998094054171c5b9a9e0f0084289ad2ccf6",
-            "b5823eb3ec64c381ce29b98aa71a5998094054171c5b9a9e0f0084289ad2ccf6",
-            "8a2ba899956359eb278f6daffc8ae0f5dfb631a67dbfe57687f665b20bcf063e"
-        ]
-        keys = mempool.getTxs().keys()
-        for txid in txids:
-            self.assertEqual(True, txid in keys)
-            # self.assertEqual(True, len(txids) == len(keys))
-
-        def test_parse_mempool_class(self):
-            mempool = Mempool()
-            print("Start parsing mempool file")
-            mempool.fromJSON("data/mini-mempool.json")
-            txids = [
-                "a5823eb3ec64c381ce29b98aa71a5998094054171c5b9a9e0f0084289ad2ccf6",
-                "b5823eb3ec64c381ce29b98aa71a5998094054171c5b9a9e0f0084289ad2ccf6",
-                "9a9b73b2a6ea86a495662d5e90cda9fadbf70c470231dff6b4f9286707f30812",
-                "154ff366005101ed97c044782d82e3abf44073968bd0db21c9f5b27296aa3de2",
-                "6a2ba899956359eb278f6daffc8ae0f5dfb631a67dbfe57687f665b20bcf063e"
-            ]
-
-            keys = mempool.getTxs().keys()
-            for txid in txids:
-                self.assertEqual(True, txid in keys)
-
     def test_get_representative_tx(self):
         print("repTx")
         self.assertEqual(
                 csbb.getRepresentativeTxid(["qrs", "nop", "tuv"]),
                 "nop",
                 "Should be nop"
-            )
-
-    def test_get_local_cluster_txids(self):
-        print("localcluster")
-        self.assertEqual(
-                sorted(self.testDict["abc"].getLocalClusterTxids()),
-                ["123", "abc"],
-                "Should be ['123','abc']"
             )
 
     def test_csbb_cluster(self):
@@ -152,33 +110,6 @@ class TestBlockbuilder(unittest.TestCase):
         mempool.fromDict({})
         builder = csbb.CandidateSetBlockbuilder(mempool)
         selectedTxs = builder.buildBlockTemplate()
-
-    def test_drop_tx(self):
-        mempool = Mempool()
-        mempool.fromDict(self.testDict)
-        self.assertIn('qrs', mempool.txs.keys())
-        mempool.dropTx('qrs')
-        self.assertNotIn('qrs', mempool.txs.keys())
-        self.assertNotIn('qrs', mempool.txs['nop'].children)
-        self.assertIn('qrs', mempool.txs['tuv'].parents)
-
-    def test_drop_tx_called_twice_throws(self):
-        mempool = Mempool()
-        mempool.fromDict(self.testDict)
-        self.assertIn('qrs', mempool.txs.keys())
-        mempool.dropTx('qrs')
-        self.assertNotIn('qrs', mempool.txs.keys())
-        with self.assertRaises(KeyError):
-            mempool.dropTx('qrs')
-
-    def test_remove_confirmed_tx(self):
-        mempool = Mempool()
-        mempool.fromDict(self.testDict)
-        self.assertIn('qrs', mempool.txs.keys())
-        mempool.removeConfirmedTx('qrs')
-        self.assertNotIn('qrs', mempool.txs.keys())
-        with self.assertRaises(KeyError):
-            mempool.removeConfirmedTx('qrs')
 
 if __name__ == '__main__':
     unittest.main()

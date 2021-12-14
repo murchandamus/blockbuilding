@@ -20,6 +20,11 @@ class TestCluster(unittest.TestCase):
 
         return cluster
 
+    def test_get_best_candidate_set_with_limit(self):
+        cluster = self.build_nop_cluster()
+        best = cluster.getBestCandidateSet(100)
+        self.assertEqual(list(best.txs.keys()), ["nop"])
+
     def test_assemble_ancestry(self):
         cluster = self.build_nop_cluster()
         nopAS = cluster.assembleAncestry('nop')

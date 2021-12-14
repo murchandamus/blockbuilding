@@ -1,3 +1,5 @@
+import logging
+
 # A Transaction in the context of a specific mempool and blocktemplate state.
 # Ancestors, Parents, and children will be updated as the blocktemplate is being built whenever anything gets picked from the Cluster.
 class Transaction():
