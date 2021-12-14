@@ -3,21 +3,19 @@ import os
 import logging
 from os.path import isfile, join
 
-# TODO:
-## load AllowList - done
-## Identify the lowest block-id (i.e. height) - done
-## load mempool of for the first block
-## filter to txs in whitelist
-## build block respecting the coinbase size
-## Add the transactions "confirmed" in our block to the "confirmedList", which must be global
-## Second block (increment height, find file with that prefix):
-## Keep the mempool from the first block, add the mempool from the second block
-### Deduplicate
-### Remove confirmed transactions and only allow whitelisted transactions
-### Remove dependencies from transactions that are in the confirmed list
-## build 2nd block respecting the coinbase size
-## i-th block: same.
+"""
+The Monthbuilder class manages the global context across blocks.
 
+The flow of this class is roughly:
+    1) Load the `allowSet` which prevents that we include transactions that were superseded via RBF
+    2) Identify the starting height, set as current height
+    ---
+    3) Add the mempool for the current height to the `globalMempool`, combining ancestry information
+    4) Filter the `globalMempool` to unconfirmed transactions from the `allowSet`
+    5) Instantiate one of the blockbuilders with a copy of the `globalMempool`, build block
+    6) Add transactions selected for the block to the `confirmedTxs`
+    7) Increment height, repeat from 3)
+"""
 class Monthbuilder():
     def __init__(self, monthPath):
         self.pathToMonth = monthPath
