@@ -23,7 +23,7 @@ class Monthbuilder():
         self.pathToMonth = monthPath
         self.globalMempool = bb.Mempool()
         self.allowSet = set()
-        self.usedTxSet = set()
+        self.confirmedTxs = set()
         self.height = -1
         self.coinbaseSizes = {}
 
@@ -41,7 +41,7 @@ class Monthbuilder():
 
     def updateUsedList(self, txList):
         newTxSet = set(txList)
-        self.usedTxSet = self.usedTxSet.union(newTxSet)
+        self.confirmedTxs = self.confirmedTxs.union(newTxSet)
 
     def removeSetOfTxsFromMempool(self, txsSet, mempool):
         try:
@@ -72,7 +72,7 @@ class Monthbuilder():
 
                     self.globalMempool.txs[k] = blockMempool.txs[k]
                 for k in list(self.globalMempool.txs.keys()):
-                    if k in self.usedTxSet:
+                    if k in self.confirmedTxs:
                         self.globalMempool.removeConfirmedTx(k)
                 self.globalMempool.fromDict(self.globalMempool.txs, blockId)
 
@@ -105,7 +105,7 @@ class Monthbuilder():
         logging.debug("Block Mempool after BB(): " + str(builder.mempool.txs.keys()))
         selectedTxs = builder.buildBlockTemplate()
         logging.debug("selectedTxs: " + str(selectedTxs))
-        self.usedTxSet = set(selectedTxs).union(self.usedTxSet)
+        self.confirmedTxs = set(selectedTxs).union(self.confirmedTxs)
         builder.outputBlockTemplate(self.height) # TODO: Height+blockhash?
         self.globalMempool.fromDict(bbMempool.txs)
 

@@ -21,7 +21,7 @@ class TestmonthBuilder(unittest.TestCase):
 
     def test_pruning_via_used_list(self):
         self.mobu.allowSet = {'1', '2', '3'}
-        self.mobu.usedTxSet = {'1'}
+        self.mobu.confirmedTxs = {'1'}
         self.mobu.loadBlockMempool('100001_000aaa')
         self.assertNotIn('1', self.mobu.globalMempool.txs.keys())
         self.assertIn('2', self.mobu.globalMempool.txs.keys())
@@ -49,7 +49,7 @@ class TestmonthBuilder(unittest.TestCase):
     def test_month_builder_full_cycle(self):
         self.mobu.loadAllowSet()
         self.assertSetEqual(self.mobu.allowSet, {'1','2','3'})
-        self.mobu.usedTxSet = set()
+        self.mobu.confirmedTxs = set()
         self.mobu.loadCoinbaseSizes()
         self.assertEqual(self.mobu.height, -1)
         self.mobu.getNextBlockHeight()
@@ -59,13 +59,13 @@ class TestmonthBuilder(unittest.TestCase):
         self.mobu.runBlockWithGlobalMempool()
         self.mobu.getNextBlockHeight()
         self.assertEqual(self.mobu.height, 100002)
-        self.assertSetEqual(self.mobu.usedTxSet, {'1'})
+        self.assertSetEqual(self.mobu.confirmedTxs, {'1'})
         self.mobu.loadBlockMempool('100002_000abc') # loads only 3
         self.assertSetEqual(set(self.mobu.globalMempool.txs.keys()), {'2','3'})
         self.assertSetEqual(self.mobu.allowSet, {'1','2','3'})
-        self.assertSetEqual(self.mobu.usedTxSet, {'1'})
+        self.assertSetEqual(self.mobu.confirmedTxs, {'1'})
         self.mobu.runBlockWithGlobalMempool()
-        self.assertSetEqual(self.mobu.usedTxSet, {'1', '2', '3'})
+        self.assertSetEqual(self.mobu.confirmedTxs, {'1', '2', '3'})
 
 if __name__ == '__main__':
     unittest.main()
