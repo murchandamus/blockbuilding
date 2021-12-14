@@ -37,10 +37,6 @@ class Monthbuilder():
             raise ValueError('Allowed list empty, please run `preprocessing.py`')
         logging.debug('allowSet: ' + str(self.allowSet))
 
-    def updateUsedList(self, txList):
-        newTxSet = set(txList)
-        self.confirmedTxs = self.confirmedTxs.union(newTxSet)
-
     def removeSetOfTxsFromMempool(self, txsSet, mempool):
         try:
             for k in txsSet:
