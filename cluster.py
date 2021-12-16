@@ -175,5 +175,4 @@ class Cluster():
         remainingTxids = self.txs.keys() - includedTxids
         for txid in remainingTxids:
             tx =  self.txs[txid]
-            tx.parents = set(tx.parents) - includedTxids
             tx.ancestors = set(tx.ancestors) - includedTxids

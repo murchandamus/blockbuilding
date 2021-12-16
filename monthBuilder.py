@@ -61,7 +61,9 @@ class Monthbuilder():
                     logging.debug("block txs after pruning for allow set " + str(blockMempool.txs.keys()))
                 for k in blockMempool.txs.keys():
                     if k in self.globalMempool.txs:
+                        blockMempool.txs[k].ancestors = set(self.globalMempool.txs[k].ancestors) | set(blockMempool.txs[k].ancestors)
                         blockMempool.txs[k].parents = set(self.globalMempool.txs[k].parents) | set(blockMempool.txs[k].parents)
+                        blockMempool.txs[k].children = set(self.globalMempool.txs[k].children) | set(blockMempool.txs[k].children)
                         blockMempool.txs[k].descendants = set(self.globalMempool.txs[k].descendants) | set(blockMempool.txs[k].descendants)
 
                     self.globalMempool.txs[k] = blockMempool.txs[k]

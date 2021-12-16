@@ -10,9 +10,11 @@ class Transaction():
         self.weight = int(weight)
         if parents is None:
             parents = []
+            #TODO: NEVER DELETE PARENTS
         self.parents = set([] + parents)
         if ancestors is None:
             ancestors = []
+            #TODO: RENAME TO "UNCONFIRMED_ANCESTORS"
         self.ancestors = set([] + ancestors)
         if children is None:
             children = []
