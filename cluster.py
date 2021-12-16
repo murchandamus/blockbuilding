@@ -55,13 +55,13 @@ class Cluster():
             # collect all ancestors of txid
             tx = self.txs[txid]
             ancestry = {txid: tx}
-            searchList = [] + list(tx.parents)
+            searchList = [] + list(set(tx.immutable_parents) & set(tx.unconfirmed_ancestors))
             while len(searchList) > 0:
                 ancestorTxid = searchList.pop()
                 if ancestorTxid not in ancestry.keys():
                     ancestor = self.txs[ancestorTxid]
                     ancestry[ancestorTxid] = ancestor
-                    searchList += ancestor.parents
+                    searchList += list(set(ancestor.immutable_parents) & set(tx.unconfirmed_ancestors))
             ancestorSet = CandidateSet(ancestry)
             if self.ancestorSets is None:
                 self.ancestorSets = {txid: ancestorSet}
@@ -175,5 +175,4 @@ class Cluster():
         remainingTxids = self.txs.keys() - includedTxids
         for txid in remainingTxids:
             tx =  self.txs[txid]
-            tx.parents = set(tx.parents) - includedTxids
-            tx.ancestors = set(tx.ancestors) - includedTxids
+            tx.unconfirmed_ancestors = set(tx.unconfirmed_ancestors) - includedTxids

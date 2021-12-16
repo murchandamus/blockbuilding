@@ -64,14 +64,14 @@ class CandidateSetBlockbuilder(Blockbuilder):
             for txid, tx in self.mempool.txs.items():
                 self.txsToBeClustered[txid] = tx
         for txid, tx in self.txsToBeClustered.items():
-            if txid in self.txClusterMap.keys():
+            if txid in self.txClusterMap.keys() or txid in self.selectedTxs:
                 continue
             logging.debug("Cluster tx: " + txid)
             localCluster = Cluster(tx, weightLimit)
             localClusterTxids = tx.getLocalClusterTxids()
             while len(localClusterTxids) > 0:
                 nextTxid = localClusterTxids.pop()
-                if nextTxid in localCluster.txs.keys():
+                if nextTxid in localCluster.txs.keys() or nextTxid in self.selectedTxs:
                     continue
                 nextTx = self.mempool.getTx(nextTxid)
                 localCluster.addTx(nextTx)
@@ -123,7 +123,7 @@ class CandidateSetBlockbuilder(Blockbuilder):
                 self.txClusterMap.pop(txid)
                 if txid in bestCandidateSet.txs.keys():
                     # remove bestCandidateSet from mempool
-                    self.mempool.txs.pop(txid)
+                    self.mempool.removeConfirmedTx(txid)
                 else:
                     # stage other txs for clustering in mempool
                     self.txsToBeClustered[txid] = tx
@@ -148,10 +148,14 @@ class CandidateSetBlockbuilder(Blockbuilder):
             while len(txsIdsToAdd) > 0:
                 for txid in txsIdsToAdd:
                     logging.debug("Try adding txid: " + str(txid))
-                    if set(self.refMempool.txs[txid].parents).issubset(set(self.selectedTxs)):
+                    if set(self.refMempool.txs[txid].immutable_parents).issubset(set(self.selectedTxs)):
                         self.selectedTxs.append(txid)
                         txsIdsToAdd.remove(txid)
             self.availableWeight -= bestCandidateSet.getWeight()
+
+            # remove included txs from mempool and lazy delete their ancestor sets
+            for txid in bestCandidateSet.txs.keys():
+                self.mempool.removeConfirmedTx(txid)
 
         return self.selectedTxs
 

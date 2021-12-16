@@ -25,7 +25,7 @@ def LinearProgrammingSolve(txs, max_size, slover_choice='CBC', time_lim=5000):
 
 #   Ancestor constraints
     for i in txs:
-        for j in txs[i].parents:
+        for j in txs[i].immutable_parents:
             solver.Add(lp_variables[j] >= lp_variables[i])
 #            These might give different results in CBC:
 #            solver.Add(lp_variables[i] <= lp_variables[j])
@@ -73,13 +73,13 @@ def LinearProgrammingSolve(txs, max_size, slover_choice='CBC', time_lim=5000):
 
 def create_block(txs_to_be_included):
 #    print('all txs:', [i for i in txs_to_be_included])
-    block = [i for i in txs_to_be_included if len(txs_to_be_included[i].parents) == 0]
+    block = [i for i in txs_to_be_included if len(txs_to_be_included[i].immutable_parents) == 0]
     to_be_removed = []
     for k in block:
         txs_to_be_included.pop(k)
     while len(txs_to_be_included)>0:
         for i in txs_to_be_included:
-            if len([j for j in txs_to_be_included[i].parents if j in block]) == len(txs_to_be_included[i].parents):
+            if len([j for j in txs_to_be_included[i].immutable_parents if j in block]) == len(txs_to_be_included[i].immutable_parents):
                 block.append(i)
                 to_be_removed.append(i)
         for i in to_be_removed:

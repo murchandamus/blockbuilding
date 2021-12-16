@@ -62,22 +62,22 @@ class Mempool():
         for tx in self.txs.values():
             # Backfill ancestors
             allAncestors = set()
-            searchList = list(set(tx.parents) | set(tx.ancestors))
+            searchList = list(set(tx.immutable_parents) | set(tx.unconfirmed_ancestors))
             while len(searchList) > 0:
                 ancestor = searchList.pop()
                 allAncestors.add(ancestor)
-                furtherAncestors = set(self.txs[ancestor].parents) | set(self.txs[ancestor].ancestors)
+                furtherAncestors = set(self.txs[ancestor].immutable_parents) | set(self.txs[ancestor].unconfirmed_ancestors)
                 searchList = list(set(searchList) | furtherAncestors)
-            tx.ancestors = list(set(allAncestors))
+            tx.unconfirmed_ancestors = list(set(allAncestors))
 
             nonParentAncestors = set()
-            for a in tx.ancestors:
+            for a in tx.unconfirmed_ancestors:
                 self.txs[a].descendants.add(tx.txid)
-                nonParentAncestors.update(set(self.txs[a].ancestors).intersection(set(tx.ancestors)))
-            tx.parents = set(tx.ancestors) - nonParentAncestors
-            for p in tx.parents:
+                nonParentAncestors.update(set(self.txs[a].unconfirmed_ancestors).intersection(set(tx.unconfirmed_ancestors)))
+            tx.immutable_parents = set(tx.unconfirmed_ancestors) - nonParentAncestors
+            for p in tx.immutable_parents:
                 self.txs[p].children.add(tx.txid)
-            if len(tx.ancestors) < len(tx.parents):
+            if len(tx.unconfirmed_ancestors) < len(tx.immutable_parents):
                 raise Exception("Fewer ancestors than parents")
 
         logging.debug("Ancestors, parents, and children backfilled")
@@ -92,29 +92,27 @@ class Mempool():
         for d in self.txs[txid].descendants:
             print("Remove confirmed tx: "  + txid + " from " + d)
             if d in self.txs.keys():
-                if txid in self.txs[d].parents:
-                    self.txs[d].parents.remove(txid)
-                if txid in self.txs[d].ancestors:
-                    self.txs[d].ancestors.remove(txid)
+                if txid in self.txs[d].unconfirmed_ancestors:
+                    self.txs[d].unconfirmed_ancestors.remove(txid)
 
         for child in self.txs[txid].children:
             if child in self.txs.keys():
-                if txid in self.txs[child].parents:
+                if txid in self.txs[child].unconfirmed_ancestors:
+                    self.txs[d].unconfirmed_ancestors.remove(txid)
                     # Since every child is a descendant, this should never be true. If this is found, we need to fix descendant backfilling.
-                    self.txs[child].parents.remove(txid)
-                    logging.warning("Tx was in children, but not descendants")
+                    raise Exception("Tx was in children, but not descendants")
 
         self.txs.pop(txid)
 
     def dropTx(self, txid):
-        for a in self.txs[txid].ancestors:
+        for a in self.txs[txid].unconfirmed_ancestors:
             if a in self.txs.keys():
                 if txid in self.txs[a].descendants:
                     self.txs[a].descendants.remove(txid)
                 if txid in self.txs[a].children:
                     self.txs[a].children.remove(txid)
 
-        for p in self.txs[txid].parents:
+        for p in self.txs[txid].immutable_parents:
             if p in self.txs.keys():
                 if txid in self.txs[p].children:
                     self.txs[p].children.remove(txid)

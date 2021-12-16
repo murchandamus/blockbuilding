@@ -7,10 +7,11 @@ class CandidateSet():
         if len(txs) < 1:
             raise TypeError("set cannot be empty")
         for txid, tx in txs.items():
-            if all(parent in txs.keys() for parent in tx.parents):
+            unconfirmed_parents = set(tx.immutable_parents) & set(tx.unconfirmed_ancestors)
+            if all(parent in txs.keys() for parent in unconfirmed_parents):
                 self.txs[txid] = tx
             else:
-                raise TypeError("parent of " + txid + " is not in txs")
+                raise TypeError("unconfirmed parent of " + txid + " is not in txs")
 
     def __repr__(self):
         return "CandidateSet(%s, %s)" % (str(sorted(list(self.txs.keys()))), str(self.getEffectiveFeerate()))

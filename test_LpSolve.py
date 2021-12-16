@@ -22,7 +22,7 @@ def checkBlockValditiy(mempool, block, MAX_BLOCK_WEIGHT):
         if tx not in mempool.txs.keys():
             print("Invalid tx {} in block!".format(tx))
             sys.exit(1)
-        for parent in mempool.txs[tx].parents:
+        for parent in mempool.txs[tx].immutable_parents:
             if parent not in txs_in_block:
                 print("Block contains transaction {} with unconfirmed parent {}!".format(tx, parent))
                 return 1

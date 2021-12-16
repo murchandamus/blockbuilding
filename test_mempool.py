@@ -48,7 +48,7 @@ class TestMempool(unittest.TestCase):
         mempool.dropTx('qrs')
         self.assertNotIn('qrs', mempool.txs.keys())
         self.assertNotIn('qrs', mempool.txs['nop'].children)
-        self.assertIn('qrs', mempool.txs['tuv'].parents)
+        self.assertIn('qrs', mempool.txs['tuv'].immutable_parents)
 
     def test_drop_tx_called_twice_throws(self):
         mempool = Mempool()

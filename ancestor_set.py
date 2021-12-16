@@ -55,7 +55,7 @@ class AncestorSet():
         return self.feerate
 
     def getAncestorTxids(self):
-        return self.rep.ancestors
+        return self.rep.unconfirmed_ancestors
 
     def getAllDescendants(self):
         print("getAllDescendants for: " + str(self))

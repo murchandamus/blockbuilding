@@ -10,10 +10,12 @@ class Transaction():
         self.weight = int(weight)
         if parents is None:
             parents = []
-        self.parents = set([] + parents)
+            #TODO: NEVER DELETE PARENTS
+        self.immutable_parents = set([] + parents)
         if ancestors is None:
             ancestors = []
-        self.ancestors = set([] + ancestors)
+            #TODO: RENAME TO "UNCONFIRMED_ANCESTORS"
+        self.unconfirmed_ancestors = set([] + ancestors) | self.immutable_parents
         if children is None:
             children = []
         self.children = set([] + children)
@@ -22,7 +24,7 @@ class Transaction():
         self.descendants = set([] + descendants)
 
     def createExportDict(self):
-        txRep = { 'fee': self.fee, 'weight': self.weight, 'spentby': self.children, 'depends': self.parents }
+        txRep = { 'fee': self.fee, 'weight': self.weight, 'spentby': self.children, 'depends': self.immutable_parents }
         return txRep
 
     def getFeerate(self):
@@ -31,10 +33,10 @@ class Transaction():
         return self.feerate
 
     def getLocalClusterTxids(self):
-        return list(set([self.txid] + list(self.children) + list(self.parents)))
+        return list(set([self.txid] + list(self.children) + list(set(self.immutable_parents) & set(self.unconfirmed_ancestors))))
 
     def __str__(self):
-        return "{txid: " + self.txid + ", children: " + str(self.children) + ", parents: " + str(self.parents) + ", fee: " + str(self.fee) + ", weight: " + str(self.weight) + "}"
+        return "{txid: " + self.txid + ", children: " + str(self.children) + ", parents: " + str(self.immutable_parents) + ", fee: " + str(self.fee) + ", weight: " + str(self.weight) + "}"
 
     def __repr__(self):
         return "Transaction(%s)" % (self.txid)
