@@ -25,10 +25,12 @@ class TestMempool(unittest.TestCase):
         for txid in txids:
             self.assertEqual(True, txid in keys)
 
-    def test_parse_from_JSON(self):
+    def get_mempool_json(self):
         mempool = Mempool()
-        print("Start parsing mempool file")
         mempool.fromJSON("data/mini-mempool.json")
+        return mempool
+
+    def test_parse_from_JSON(self):
         expectedTxids = [
             "01123eb3ec64c381ce29b98aa71a5998094054171c5b9a9e0f0084289ad2ccf6",
             "a5823eb3ec64c381ce29b98aa71a5998094054171c5b9a9e0f0084289ad2ccf6",
@@ -41,9 +43,17 @@ class TestMempool(unittest.TestCase):
         ]
         expectedTxids.sort()
 
+        mempool = self.get_mempool_json()
         txids = list(mempool.getTxs().keys())
         txids.sort()
         self.assertEqual(expectedTxids, txids)
+
+    def test_mempool_fee(self):
+        txs = self.get_mempool_json().getTxs()
+        self.assertEqual(
+            13120,
+            txs["88b75cf4ef99814d1f3f2245800b93aa400e92cfeae763f1334f3059232204a7"].fee
+        )
 
     def test_drop_tx(self):
         mempool = Mempool()
