@@ -192,5 +192,31 @@
     "spentby": [
     ],
     "bip125-replaceable": false
+  },
+  "88b75cf4ef99814d1f3f2245800b93aa400e92cfeae763f1334f3059232204a7": {
+    "fees": {
+      "base": 0.00013120,
+      "modified": 0.00013120,
+      "ancestor": 0.00013120,
+      "descendant": 0.00013120
+    },
+    "vsize": 164,
+    "weight": 653,
+    "fee": 0.00013120,
+    "modifiedfee": 0.00013120,
+    "time": 1588882844,
+    "height": 629405,
+    "descendantcount": 1,
+    "descendantsize": 164,
+    "descendantfees": 13120,
+    "ancestorcount": 1,
+    "ancestorsize": 164,
+    "ancestorfees": 13120,
+    "wtxid": "d2912866d67aa85af580e01494cc4615010acb48f2478c073b83642467336e94",
+    "depends": [
+    ],
+    "spentby": [
+    ],
+    "bip125-replaceable": false
   }
 }
