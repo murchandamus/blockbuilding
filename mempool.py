@@ -1,6 +1,7 @@
 import heapq
 import json
 import math
+import decimal
 from pathlib import Path
 import logging
 
@@ -23,12 +24,12 @@ class Mempool():
         txsJSON = {}
         with open(filePath, 'r') as import_file:
             self.blockId = Path(filePath).stem
-            txsJSON = json.load(import_file)
+            txsJSON = json.load(import_file, parse_float=decimal.Decimal)
 
             for txid in txsJSON.keys():
                 tx = Transaction(
                     txid,
-                    txsJSON[txid]["fee"] * math.pow(10,8),
+                    txsJSON[txid]["fee"].shift(8),
                     txsJSON[txid]["weight"],
                     txsJSON[txid]["depends"],
                     txsJSON[txid]["spentby"]
