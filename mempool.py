@@ -58,7 +58,7 @@ class Mempool():
         logging.info(str(len(self.txs))+ " txs loaded")
 
     def backfill_relatives(self):
-        logging.debug("Backfill, ancestors, parents and children from parents and ancestors...")
+        logging.debug("Backfill, ancestors, parents, children, and descendants from parents and ancestors...")
         for tx in self.txs.values():
             # Backfill ancestors
             allAncestors = set()
@@ -80,7 +80,7 @@ class Mempool():
             if len(tx.ancestors) < len(tx.parents):
                 raise Exception("Fewer ancestors than parents")
 
-        logging.debug("Ancestors, parents, and children backfilled")
+        logging.debug("Ancestors, parents, children, and descendants backfilled")
 
     def getTx(self, txid):
         return self.txs[txid]

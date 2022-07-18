@@ -65,6 +65,8 @@ class Monthbuilder():
                         blockMempool.txs[k].descendants = set(self.globalMempool.txs[k].descendants) | set(blockMempool.txs[k].descendants)
 
                     self.globalMempool.txs[k] = blockMempool.txs[k]
+                self.globalMempool.backfill_relatives() # ensure that all ancestors, children and descendants are set after merging global and block mempool
+
                 for k in list(self.globalMempool.txs.keys()):
                     if k in self.confirmedTxs:
                         self.globalMempool.removeConfirmedTx(k)
