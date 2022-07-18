@@ -10,11 +10,12 @@ The flow of this class is roughly:
     1) Load the `allowSet` which prevents that we include transactions that were superseded via RBF
     2) Identify the starting height, set as current height
     ---
-    3) Add the mempool for the current height to the `globalMempool`, combining ancestry information
-    4) Filter the `globalMempool` to unconfirmed transactions from the `allowSet`
-    5) Instantiate one of the blockbuilders with a copy of the `globalMempool`, build block
-    6) Add transactions selected for the block to the `confirmedTxs`
-    7) Increment height, repeat from 3)
+    3) Load the mempool for the current height, removing transactions that are not in the `allowSet`
+    4) Merge txs from current mempool with the `globalMempool`, combining ancestry information
+    5) Remove confirmed transactions from the `globalMempool`
+    6) Instantiate a blockbuilder with a copy of the `globalMempool`
+    7) Build block, add selected transactions to the `confirmedTxs`
+    8) Increment height, repeat from 3)
 """
 class Monthbuilder():
     def __init__(self, monthPath):
