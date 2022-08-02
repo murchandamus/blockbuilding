@@ -98,6 +98,8 @@ class Monthbuilder():
         logging.debug("Global Mempool before BB(): " + str(self.globalMempool.txs.keys()))
         bbMempool = bb.Mempool()
         bbMempool.fromDict(self.globalMempool.txs)
+        # After loading block mempool, store ancestors for each transaction in permanent field
+        bbMempool.store_same_block_ancestry()
         builder = bb.CandidateSetBlockbuilder(bbMempool, weightAllowance) # TODO: use coinbase size here
         logging.debug("Block Mempool after BB(): " + str(builder.mempool.txs.keys()))
         selectedTxs = builder.buildBlockTemplate()

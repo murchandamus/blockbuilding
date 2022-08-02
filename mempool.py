@@ -80,7 +80,13 @@ class Mempool():
             if len(tx.ancestors) < len(tx.parents):
                 raise Exception("Fewer ancestors than parents")
 
+        self.store_same_block_ancestry()
+
         logging.debug("Ancestors, parents, children, and descendants backfilled")
+
+    def store_same_block_ancestry(self):
+        for tx in self.txs.values():
+            tx.same_block_ancestors = list(set([]) | set(tx.parents) | set(tx.ancestors))
 
     def getTx(self, txid):
         return self.txs[txid]

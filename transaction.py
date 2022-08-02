@@ -14,6 +14,7 @@ class Transaction():
         if ancestors is None:
             ancestors = []
         self.ancestors = set([] + ancestors)
+        self.same_block_ancestors = []
         if children is None:
             children = []
         self.children = set([] + children)
