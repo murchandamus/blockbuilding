@@ -7,10 +7,10 @@ def addBlockHeightToFileName(fileLocation, fileName, height):
     os.rename(fileLocation+r'/'+fileName, fileLocation+ r'/' + height +'_' +fileName)
 
 def addBlockHeightForDirectory(directory):
-    relvantPathEndings = ['.mempool', '.block', '.gbt']
+    relevant_path_endings = ['.mempool', '.block', '.gbt']
     blockHeights = {}
     for file in os.listdir(directory):
-        if file.find("_") == -1 and any(x in file for x in relvantPathEndings):
+        if file.find("_") == -1 and any(x in file for x in relevant_path_endings):
             blockId = file[0:file.find(r'.')]
             height = -1
             if blockId in blockHeights:

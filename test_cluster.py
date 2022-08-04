@@ -46,5 +46,10 @@ class TestCluster(unittest.TestCase):
         for txid, tx in cluster.txs.items():
             print(tx)
 
+    def test_export(self):
+        cluster = self.build_nop_cluster()
+        cluster.export()
+
+
 if __name__ == '__main__':
     unittest.main()

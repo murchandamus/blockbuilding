@@ -96,7 +96,7 @@ class Mempool():
 
     def removeConfirmedTx(self, txid):
         for d in self.txs[txid].descendants:
-            print("Remove confirmed tx: "  + txid + " from " + d)
+            logging.debug("Remove confirmed tx: "  + txid + " from " + d)
             if d in self.txs.keys():
                 if txid in self.txs[d].parents:
                     self.txs[d].parents.remove(txid)

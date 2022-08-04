@@ -23,7 +23,7 @@ class Transaction():
         self.descendants = set([] + descendants)
 
     def createExportDict(self):
-        txRep = { 'fee': self.fee, 'weight': self.weight, 'spentby': self.children, 'depends': self.parents }
+        txRep = { 'fee': self.fee, 'weight': self.weight, 'spentby': list(self.children), 'depends': list(self.parents) }
         return txRep
 
     def getFeerate(self):
