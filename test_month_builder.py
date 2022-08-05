@@ -1,9 +1,9 @@
 import unittest
 import candidate_builder as bb
-import monthBuilder as mb
+import month_builder as mb
 
 
-class TestmonthBuilder(unittest.TestCase):
+class TestMonthBuilder(unittest.TestCase):
     def setUp(self):
         self.mobu = mb.Monthbuilder("./persistenceTestData")
         self.testDict = {'1' : bb.Transaction(1, 1, 1), '2' : bb.Transaction(2,2,2)}
