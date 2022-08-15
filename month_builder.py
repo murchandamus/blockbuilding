@@ -1,7 +1,12 @@
-import candidate_builder as bb
-import os
+import candidate_builder as csb
+import ancestor_builder as asb
+
+import datetime
+import getopt
 import logging
-from os.path import isfile, join
+import os
+import random
+import sys
 
 """
 The Monthbuilder class manages the global context across blocks.
@@ -17,10 +22,55 @@ The flow of this class is roughly:
     7) Build block, add selected transactions to the `confirmedTxs`
     8) Increment height, repeat from 3)
 """
+def main(argv):
+    asb_proportion = 0
+    csb_proportion = 0
+    try:
+        opts, args = getopt.getopt(argv, "a:c:h", ["asb=", "csb=", "help"])
+    except getopt.GetoptError:
+        print ('month_builder.py -asb <ancestor_set_proportion> -csb <candidate_set_proportion>')
+        sys.exit(2)
+    for opt, arg in opts:
+        if opt in ('-h', "--help"):
+            print ('month_builder.py -asb <ancestor_set_proportion> -csb <candidate_set_proportion>')
+            sys.exit()
+        elif opt in ("-a", "--asb"):
+            asb_proportion = arg
+        elif opt in ("-c", "--csb"):
+            csb_proportion = arg
+
+    if (asb_proportion == 0 and csb_proportion == 0):
+        logging.info("Defaulting to candidate set based block building (`asb=0, csb=1`) since proportions were not specified")
+        csb_proportion = 1
+    else:
+        logging.info("Blocks will be randomly drawn from (`asb= " + asb_proportion + ", csb= " + csb_proportion + "`)")
+
+    date_now = datetime.datetime.now()
+    logging.basicConfig(filename=date_now.isoformat() + '_monthbuilder.log', level=logging.INFO)
+
+    mb = Monthbuilder(".")
+    mb.loadAllowSet()
+    mb.loadCoinbaseSizes() # TODO
+
+    while(True):
+        mb.getNextBlockHeight()
+        blockfileName = ''
+        files = os.listdir(mb.pathToMonth)
+        for f in files:
+            if f.startswith(str(mb.height)):
+                blockfileName = f.split('.')[0]
+                break
+        if blockfileName == '':
+            logging.info('Height ' + str(mb.height) + ' not found, done')
+            break
+        logging.info("Starting block: " + blockfileName)
+        mb.loadBlockMempool(blockfileName)
+        mb.runBlockWithGlobalMempool(asb_proportion, csb_proportion)
+
 class Monthbuilder():
     def __init__(self, monthPath):
         self.pathToMonth = monthPath
-        self.globalMempool = bb.Mempool()
+        self.globalMempool = csb.Mempool()
         self.allowSet = set()
         self.confirmedTxs = set()
         self.height = -1
@@ -51,7 +101,7 @@ class Monthbuilder():
         for file in os.listdir(self.pathToMonth):
             if file.endswith(blockId+'.mempool'):
                 fileFound = 1
-                blockMempool = bb.Mempool()
+                blockMempool = csb.Mempool()
                 blockMempool.fromTXT(os.path.join(self.pathToMonth, file))
                 blockTxsSet = set(blockMempool.txs.keys())
                 txsToRemove = blockTxsSet.difference(self.allowSet)
@@ -90,17 +140,22 @@ class Monthbuilder():
         if len(self.coinbaseSizes) == 0:
             raise Exception('Coinbase file not found, please run `preprocessing.py`')
 
-    def runBlockWithGlobalMempool(self):
+    def runBlockWithGlobalMempool(self, asb_proportion=0, csb_proportion=1):
         coinbaseSizeForCurrentBlock = self.coinbaseSizes[self.height]
         logging.info("Current height: " + str(self.height))
         weightAllowance = 4000000 - int(coinbaseSizeForCurrentBlock)
         logging.debug("Current weightAllowance: " + str(weightAllowance))
         logging.debug("Global Mempool before BB(): " + str(self.globalMempool.txs.keys()))
-        bbMempool = bb.Mempool()
+        bbMempool = csb.Mempool()
         bbMempool.fromDict(self.globalMempool.txs)
         # After loading block mempool, store ancestors for each transaction in permanent field
         bbMempool.store_same_block_ancestry()
-        builder = bb.CandidateSetBlockbuilder(bbMempool, weightAllowance) # TODO: use coinbase size here
+        builder_chooser = random.randint(1, asb_proportion + csb_proportion)
+        builder = None
+        if (builder_chooser <= asb_proportion):
+            builder = asb.AncestorSetBlockbuilder(bbMempool, weightAllowance) # TODO: use coinbase size here
+        else:
+            builder = csb.CandidateSetBlockbuilder(bbMempool, weightAllowance) # TODO: use coinbase size here
         logging.debug("Block Mempool after BB(): " + str(builder.mempool.txs.keys()))
         selectedTxs = builder.buildBlockTemplate()
         logging.debug("selectedTxs: " + str(selectedTxs))
@@ -123,21 +178,4 @@ class Monthbuilder():
             return self.height
 
 if __name__ == '__main__':
-    logging.basicConfig(filename='monthbuilder-latest.log', level=logging.INFO)
-    mb = Monthbuilder(".")
-    mb.loadAllowSet()
-    mb.loadCoinbaseSizes() # TODO
-    while(True):
-        mb.getNextBlockHeight()
-        blockfileName = ''
-        files = os.listdir(mb.pathToMonth)
-        for f in files:
-            if f.startswith(str(mb.height)):
-                blockfileName = f.split('.')[0]
-                break
-        if blockfileName == '':
-            logging.info('Height ' + str(mb.height) + ' not found, done')
-            break
-        logging.info("Starting block: " + blockfileName)
-        mb.loadBlockMempool(blockfileName)
-        mb.runBlockWithGlobalMempool()
+    main(sys.argv[1:])
