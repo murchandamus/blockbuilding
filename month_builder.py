@@ -1,8 +1,8 @@
 import candidate_builder as csb
 import ancestor_builder as asb
 
+import argparse
 import datetime
-import getopt
 import logging
 import os
 import random
@@ -23,32 +23,36 @@ The flow of this class is roughly:
     8) Increment height, repeat from 3)
 """
 def main(argv):
+    parser = argparse.ArgumentParser(description='Build an alternative blockchain from a sequence of mempools and blocks.')
+    parser.add_argument('-a', '--asb', type=int, help='proportion of AncestorSetBlockbuilder being randomly chosen from sum of asb+csb', default=0, required=False)
+    parser.add_argument('-c', '--csb', type=int, help='proportion of CandidateSetBlockbuilder being randomly chosen from sum of asb+csb', default=0, required=False)
+    args = parser.parse_args()
+
     asb_proportion = 0
     csb_proportion = 0
-    try:
-        opts, args = getopt.getopt(argv, "a:c:h", ["asb=", "csb=", "help"])
-    except getopt.GetoptError:
-        print ('month_builder.py -asb <ancestor_set_proportion> -csb <candidate_set_proportion>')
-        sys.exit(2)
-    for opt, arg in opts:
-        if opt in ('-h', "--help"):
-            print ('month_builder.py -asb <ancestor_set_proportion> -csb <candidate_set_proportion>')
-            sys.exit()
-        elif opt in ("-a", "--asb"):
-            asb_proportion = arg
-        elif opt in ("-c", "--csb"):
-            csb_proportion = arg
-
-    if (asb_proportion == 0 and csb_proportion == 0):
-        logging.info("Defaulting to candidate set based block building (`asb=0, csb=1`) since proportions were not specified")
+    if (args.asb == 0 and args.csb == 0):
+        print("Defaulting to candidate set based block building (`asb=0, csb=1`) since proportions were not specified")
+        asb_proportion = 0
         csb_proportion = 1
     else:
-        logging.info("Blocks will be randomly drawn from (`asb= " + asb_proportion + ", csb= " + csb_proportion + "`)")
+        asb_proportion = args.asb
+        csb_proportion = args.csb
+        print("Blocks will be randomly drawn from (`asb= " + str(asb_proportion) + ", csb= " + str(csb_proportion) + "`)")
 
     date_now = datetime.datetime.now()
-    logging.basicConfig(filename=date_now.isoformat() + '_monthbuilder.log', level=logging.INFO)
+    result_dir = date_now.isoformat() + '_asb_' + str(asb_proportion) + '_csb_' + str(csb_proportion) + '_results/'
+    os.mkdir(result_dir)
+    logfile = result_dir + date_now.isoformat() + '_monthbuilder.log'
+    logging.basicConfig(filename=logfile, level=logging.INFO)
+    logging.info("Starttime: " + date_now.isoformat())
 
-    mb = Monthbuilder(".")
+    date_now = datetime.datetime.now()
+    result_dir = date_now.isoformat() + '_results'
+    os.mkdir(result_dir)
+    logging.basicConfig(filename=date_now.isoformat() + '_monthbuilder.log', level=logging.INFO)
+    logging.info("Making " + str(asb_proportion) + " ancestorset blocks per " + str(csb_proportion) + " candidateset blocks.")
+
+    mb = Monthbuilder(".", result_dir)
     mb.loadAllowSet()
     mb.loadCoinbaseSizes() # TODO
 
@@ -68,13 +72,14 @@ def main(argv):
         mb.runBlockWithGlobalMempool(asb_proportion, csb_proportion)
 
 class Monthbuilder():
-    def __init__(self, monthPath):
+    def __init__(self, monthPath, result_dir="results/"):
         self.pathToMonth = monthPath
         self.globalMempool = csb.Mempool()
         self.allowSet = set()
         self.confirmedTxs = set()
         self.height = -1
         self.coinbaseSizes = {}
+        self.result_dir = result_dir
 
     def loadAllowSet(self):
         files = os.listdir(self.pathToMonth)
@@ -150,7 +155,7 @@ class Monthbuilder():
         bbMempool.fromDict(self.globalMempool.txs)
         # After loading block mempool, store ancestors for each transaction in permanent field
         bbMempool.store_same_block_ancestry()
-        builder_chooser = random.randint(1, asb_proportion + csb_proportion)
+        builder_chooser = random.randint(1, asb_proportion - 0 + (csb_proportion-0))
         builder = None
         if (builder_chooser <= asb_proportion):
             builder = asb.AncestorSetBlockbuilder(bbMempool, weightAllowance) # TODO: use coinbase size here
@@ -160,7 +165,7 @@ class Monthbuilder():
         selectedTxs = builder.buildBlockTemplate()
         logging.debug("selectedTxs: " + str(selectedTxs))
         self.confirmedTxs = set(selectedTxs).union(self.confirmedTxs)
-        builder.outputBlockTemplate(self.height) # TODO: Height+blockhash?
+        builder.outputBlockTemplate(self.height, self.result_dir) # TODO: Height+blockhash?
         self.globalMempool.fromDict(bbMempool.txs)
 
     def getNextBlockHeight(self):

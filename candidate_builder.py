@@ -155,8 +155,8 @@ class CandidateSetBlockbuilder(Blockbuilder):
 
         return self.selectedTxs
 
-    def outputBlockTemplate(self, blockId=""):
-        filePath = "results/"
+    def outputBlockTemplate(self, blockId="", result_dir="results/"):
+        filePath = result_dir
         if blockId is not None and blockId != "":
             filePath += str(blockId) + '-'
         date_now = datetime.datetime.now()
