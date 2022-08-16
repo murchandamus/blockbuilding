@@ -40,16 +40,12 @@ def main(argv):
         print("Blocks will be randomly drawn from (`asb= " + str(asb_proportion) + ", csb= " + str(csb_proportion) + "`)")
 
     date_now = datetime.datetime.now()
-    result_dir = date_now.isoformat() + '_asb_' + str(asb_proportion) + '_csb_' + str(csb_proportion) + '_results/'
+    result_dir = 'results_' + date_now.isoformat() + '_asb_' + str(asb_proportion) + '_csb_' + str(csb_proportion) + '/'
     os.mkdir(result_dir)
     logfile = result_dir + date_now.isoformat() + '_monthbuilder.log'
     logging.basicConfig(filename=logfile, level=logging.INFO)
     logging.info("Starttime: " + date_now.isoformat())
 
-    date_now = datetime.datetime.now()
-    result_dir = date_now.isoformat() + '_results'
-    os.mkdir(result_dir)
-    logging.basicConfig(filename=date_now.isoformat() + '_monthbuilder.log', level=logging.INFO)
     logging.info("Making " + str(asb_proportion) + " ancestorset blocks per " + str(csb_proportion) + " candidateset blocks.")
 
     mb = Monthbuilder(".", result_dir)
