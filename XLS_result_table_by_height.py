@@ -1,7 +1,19 @@
+import argparse
 import os
 import logging
+import sys
+
 from xlwt import Workbook
 
+def main(argv):
+    parser = argparse.ArgumentParser(description='Builds an .xls table from the results of month_builder')
+    parser.add_argument('-s', '--source', default='.', help='directory with the block files, uses current directory if not specified')
+    parser.add_argument('-o', '--output', default='./fee_weight_per_block.xls', help='output file the resulting table will be written into')
+
+    args = parser.parse_args()
+    block_heights, block_types = getBlockHeightsAndTypes(args.source)
+    block_dict = createBlockDictByHeight(args.source, block_heights)
+    writeBlockDetailsToXSLByHeight(args.output, block_dict)
 
 def getBlockDetailsFromFile(fileLocation):
     try:
@@ -24,13 +36,13 @@ def getBlockHeightsAndTypes(directory):
     print('file types:')
     print(fileTypes)
     allowedBlockTypes = ['.gbt', '.block', '.byclusters', '.LpSolve', '.byancestors']
-    blockTypes = list(set(fileTypes) & set(allowedBlockTypes))
+    block_types = list(set(fileTypes) & set(allowedBlockTypes))
     blockIdSet = set()
     for f in files:
-        if f.endswith(tuple(blockTypes)):
+        if f.endswith(tuple(block_types)):
             blockIdSet.add(f[:f.find('-')])
-    blockHeights = list(blockIdSet)
-    return blockHeights, blockTypes
+    block_heights = list(blockIdSet)
+    return block_heights, block_types
 
 
 def createBlockDictByHeight(dir, heights):
@@ -65,8 +77,4 @@ def writeBlockDetailsToXSLByHeight(xlsFileName, blocks):
 
 
 if __name__ == '__main__':
-    directory = input("dir?")
-    OutputFile = input("output?")
-    blockHeights, blockTypes = getBlockHeightsAndTypes(directory)
-    BlockDict = createBlockDictByHeight(directory, blockHeights)
-    writeBlockDetailsToXSLByHeight(OutputFile, BlockDict)
+    main(sys.argv[1:])
