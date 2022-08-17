@@ -3,11 +3,13 @@ from abstract_builder import Blockbuilder
 from collections import OrderedDict
 from ancestor_set import AncestorSet
 from candidateset import CandidateSet
+
+import utils
+
 import logging
 
 import getopt
 import heapq
-import datetime
 import time
 import sys
 
@@ -130,8 +132,7 @@ class AncestorSetBlockbuilder(Blockbuilder):
         filePath = result_dir
         if blockId is not None and blockId != "":
             filePath += str(blockId) + '-'
-        date_now = datetime.datetime.now()
-        filePath += date_now.isoformat()
+        filePath += utils.get_timestamp()
 
         filePath += '.byancestors'
         with open(filePath, 'w') as output_file:

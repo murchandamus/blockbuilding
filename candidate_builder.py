@@ -1,5 +1,6 @@
 from itertools import chain, combinations
-import datetime
+
+import utils
 import getopt
 import heapq
 import json
@@ -159,8 +160,7 @@ class CandidateSetBlockbuilder(Blockbuilder):
         filePath = result_dir
         if blockId is not None and blockId != "":
             filePath += str(blockId) + '-'
-        date_now = datetime.datetime.now()
-        filePath += date_now.isoformat()
+        filePath += utils.get_timestamp()
 
         filePath += '.byclusters'
         with open(filePath, 'w') as output_file:
