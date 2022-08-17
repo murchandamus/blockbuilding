@@ -17,8 +17,13 @@ def addBlockHeightForDirectory(directory):
                 height = int(blockHeights[blockId])
             else:
                 blockData = md.getBlockInfo(blockId)
-                height = int(blockData['height'])
-                blockHeights[blockId] = height
+                if (blockData != None):
+                    height = int(blockData['height'])
+                    blockHeights[blockId] = height
+                elif (blockData == None):
+                    os.rename(file, 'X_' + file + '_not_found')
+                    print("height for " + blockId + " not found")
+                    continue
             if height < 0:
                 raise Exception("height for " + blockId + " not found")
             addBlockHeightToFileName(directory, file, str(height))
@@ -53,7 +58,6 @@ def createCoinbaseWeightsDict(directory, resultFile):
         if file.endswith('.block'):
             print("Looking for coinbase weight for " + file)
             height = file[0:file.find('_')]
-            print("height is " + str(height))
             with open(os.path.join(directory, file), 'r') as import_file:
                 import_file.readline()
                 coinbaseTxId = import_file.readline().rstrip('\n')
