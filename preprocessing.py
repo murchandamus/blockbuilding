@@ -11,6 +11,7 @@ def addBlockHeightForDirectory(directory):
     blockHeights = {}
     for file in os.listdir(directory):
         if file.find("_") == -1 and any(x in file for x in relevant_path_endings):
+            print("trying file: " + file)
             blockId = file[0:file.find(r'.')]
             height = -1
             if blockId in blockHeights:
@@ -55,26 +56,29 @@ def createAllowListFile(directory, resultFile):
 def createCoinbaseWeightsDict(directory, resultFile):
     coinbaseWeights = {}
     coinbase_file_name = os.path.join(directory, resultFile+'.coinbases')
-    if (os.path.exists(coinbase_file_name)):
-        with open(coinbase_file_name, 'w') as from_file:
-             for line in from_file:
-                 lineItems = line.rstrip('\n').split(' ')
-                 coinbaseWeights[int(lineItems[0])] = lineItems[1]
-    resFile = open(coinbase_file_name,'w')
+    if (os.path.exists(coinbase_file_name) and os.path.getsize(coinbase_file_name) > 0):
+        with open(coinbase_file_name, 'r') as coinbase_weight_file:
+             for line in coinbase_weight_file:
+                lineItems = line.rstrip('\n').split(' ')
+                coinbaseWeights[int(lineItems[0])] = int(lineItems[1].rstrip('\n'))
+        coinbase_weight_file.close()
 
+    coinbase_weight_file = open(os.path.join(directory, resultFile+".coinbases"),'a')
     for file in os.listdir(directory):
         if file.endswith('.block'):
             print("Looking for coinbase weight for " + file)
-            height = file[0:file.find('_')]
-            if coinbaseWeights.has(height):
+            height = int(file[0:file.find('_')])
+            if height in coinbaseWeights:
+                print('height ' + str(height) + ' found, skipping…')
                 continue
             else:
                 with open(os.path.join(directory, file), 'r') as import_file:
                     import_file.readline()
                     coinbaseTxId = import_file.readline().rstrip('\n')
                     coinbaseWeights[height] = md.getTxWeight(coinbaseTxId)
-                    resFile.write(str(height + ' ' + str(weight) + '\n')
-    resFile.close()
+                    print('Could not find entry, looking up height ' + str(height) + ' txid ' + coinbaseTxId)
+                    coinbase_weight_file.write(str(height) + ' ' + str(coinbaseWeights[height]) + '\n')
+    coinbase_weight_file.close()
 
 if __name__ == '__main__':
     directory = '.'
