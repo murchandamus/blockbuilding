@@ -1,20 +1,23 @@
+import utils
+
 import argparse
 import csv
 import os
-import logging
 import sys
+
 
 def main(argv):
     parser = argparse.ArgumentParser(description='Builds a .csv table from the results of month_builder')
     parser.add_argument('-s', '--source', default='.', help='directory with the block files, uses current directory if not specified')
-    parser.add_argument('-o', '--output', default='./fee_weight_per_block.csv', help='output file the resulting table will be written into')
+    parser.add_argument('-o', '--output', default='./' + utils.get_timestamp() + '_fee_weight_per_block.csv', help='output file the resulting table will be written into')
 
     args = parser.parse_args()
-    block_heights, block_types = getBlockHeightsAndTypes(args.source)
-    block_dict = createBlockDictByHeight(args.source, block_heights)
+    block_heights, block_types = read_height_and_type(args.source)
+    block_dict = create_block_dict_by_height(args.source, block_heights)
     write_blocks_to_csv(args.output, block_dict)
 
-def getBlockDetailsFromFile(fileLocation):
+
+def read_weight_and_fee(fileLocation):
     try:
         blockDetails = open(fileLocation, 'r')
         firstline = blockDetails.readline().strip()
@@ -29,7 +32,7 @@ def getBlockDetailsFromFile(fileLocation):
         print("some thing else is wrong with " + str(fileLocation))
 
 
-def getBlockHeightsAndTypes(directory):
+def read_height_and_type(directory):
     files = os.listdir(directory)
     fileTypes = list(dict.fromkeys([f[f.rfind("."):] for f in files]))
     print('file types:')
@@ -44,12 +47,12 @@ def getBlockHeightsAndTypes(directory):
     return block_heights, block_types
 
 
-def createBlockDictByHeight(dir, heights):
+def create_block_dict_by_height(dir, heights):
     blocks={}
     for height in heights:
         file = os.path.join(dir, [filename for filename in os.listdir(dir) if filename.startswith(str(height))][0])
         try:
-            fee, weight = getBlockDetailsFromFile(file)
+            fee, weight = read_weight_and_fee(file)
             type = file[file.rfind("."):]
         except TypeError:
             print("No such file by height: " + str(file)+ " "+str(height))

@@ -9,6 +9,7 @@ import os
 import random
 import sys
 
+
 """
 The Monthbuilder class manages the global context across blocks.
 
