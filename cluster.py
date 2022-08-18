@@ -1,6 +1,7 @@
 import heapq
 import json
 import logging
+import os
 
 from candidateset import CandidateSet
 
@@ -24,6 +25,8 @@ class Cluster():
 
     def export(self):
         filePath = "problemclusters/"
+        if not os.path.exists(filePath):
+            os.mkdir(filePath)
         filePath += str(len(self.txs))
         filePath += "-" + self.representative
         with open(filePath, 'w') as output_file:
