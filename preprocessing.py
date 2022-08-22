@@ -86,7 +86,14 @@ def createCoinbaseWeightsDict(directory, resultFile):
 
 
 def create_diff_pools(directory):
-    txids_seen = set()
+    allowed_txids = set()
+    for file in os.listdir(directory):
+        if file.endswith('.allow'):
+            with open(os.path.join(directory, file), 'r') as allow_file:
+                for line in allow_file:
+                    allowed_txids.add(line.strip('\n'))
+
+    seen_txids = set()
     for file in sorted(os.listdir(directory)):
         if file.endswith('.mempool'):
             if '_' not in file:
@@ -102,8 +109,8 @@ def create_diff_pools(directory):
                             continue
                         line_items = line.rstrip('\n').split(' ')
                         txid = line_items[0]
-                        if txid not in txids_seen:
-                            txids_seen.add(txid)
+                        if txid not in seen_txids and txid in allowed_txids:
+                            seen_txids.add(txid)
                             diffpool_file.write(line)
 
 if __name__ == '__main__':
