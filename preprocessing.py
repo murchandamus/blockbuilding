@@ -1,10 +1,12 @@
 import os
 import blockMetaData as md
 
+
 def addBlockHeightToFileName(fileLocation, fileName, height):
     if len(height) < 6:
         height = '0'*(6-len(height))+height
     os.rename(fileLocation+r'/'+fileName, fileLocation+ r'/' + height +'_' +fileName)
+
 
 def addBlockHeightForDirectory(directory):
     relevant_path_endings = ['.mempool', '.block', '.gbt']
@@ -29,6 +31,7 @@ def addBlockHeightForDirectory(directory):
                 raise Exception("height for " + blockId + " not found")
             addBlockHeightToFileName(directory, file, str(height))
 
+
 def createAllowListFile(directory, resultFile):
     print("start allowset")
     txSet = set()
@@ -52,6 +55,7 @@ def createAllowListFile(directory, resultFile):
         resFile.write(tx+'\n')
     resFile.close()
     return txSet
+
 
 def createCoinbaseWeightsDict(directory, resultFile):
     coinbaseWeights = {}
@@ -80,9 +84,32 @@ def createCoinbaseWeightsDict(directory, resultFile):
                     coinbase_weight_file.write(str(height) + ' ' + str(coinbaseWeights[height]) + '\n')
     coinbase_weight_file.close()
 
+
+def create_diff_pools(directory):
+    txids_seen = set()
+    for file in sorted(os.listdir(directory)):
+        if file.endswith('.mempool'):
+            if '_' not in file:
+                raise Exception("mempool " + file + " has no height")
+            print('Making .diffpool for ' + file)
+            with open(os.path.join(directory, file), 'r') as mempool_file:
+                stub = file.split('.')[0]
+                with open(os.path.join(directory, stub + '.diffpool'), 'w') as diffpool_file:
+                    for line in mempool_file:
+                        if '#' in line:
+                            # copy file header
+                            diffpool_file.write(line)
+                            continue
+                        line_items = line.rstrip('\n').split(' ')
+                        txid = line_items[0]
+                        if txid not in txids_seen:
+                            txids_seen.add(txid)
+                            diffpool_file.write(line)
+
 if __name__ == '__main__':
     directory = '.'
     addBlockHeightForDirectory(directory)
     createAllowListFile(directory, 'txset')
     createCoinbaseWeightsDict(directory, 'weight')
     #print("dict "+str(getCoinbaseSizes(directory)))
+    create_diff_pools(directory)
