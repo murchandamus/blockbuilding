@@ -14,15 +14,14 @@ import sys
 The Monthbuilder class manages the global context across blocks.
 
 The flow of this class is roughly:
-    1) Load the `allowSet` which prevents that we include transactions that were superseded via RBF
-    2) Identify the starting height, set as current height
+    1) Identify the starting height, set as current height
     ---
-    3) Load the mempool for the current height, removing transactions that are not in the `allowSet`
-    4) Merge txs from current mempool with the `globalMempool`, combining ancestry information
-    5) Remove confirmed transactions from the `globalMempool`
-    6) Instantiate a blockbuilder with a copy of the `globalMempool`
-    7) Build block, add selected transactions to the `confirmedTxs`
-    8) Increment height, repeat from 3)
+    2) Load the diffpool for the current height
+    3) Merge txs from current mempool with the `globalMempool`, combining ancestry information
+    4) Remove confirmed transactions from the `globalMempool`
+    5) Instantiate a blockbuilder with a copy of the `globalMempool`
+    6) Build block, add selected transactions to the `confirmedTxs`
+    7) Increment height, repeat from 3)
 """
 def main(argv):
     parser = argparse.ArgumentParser(description='Build an alternative blockchain from a sequence of mempools and blocks.')
@@ -51,8 +50,7 @@ def main(argv):
     logging.info("Making " + str(asb_proportion) + " ancestorset blocks per " + str(csb_proportion) + " candidateset blocks.")
 
     mb = Monthbuilder(".", result_dir)
-    mb.loadAllowSet()
-    mb.loadCoinbaseSizes() # TODO
+    mb.loadCoinbaseSizes()
 
     while(True):
         mb.getNextBlockHeight()
@@ -73,23 +71,10 @@ class Monthbuilder():
     def __init__(self, monthPath, result_dir="results/"):
         self.pathToMonth = monthPath
         self.globalMempool = csb.Mempool()
-        self.allowSet = set()
         self.confirmedTxs = set()
         self.height = -1
         self.coinbaseSizes = {}
         self.result_dir = result_dir
-
-    def loadAllowSet(self):
-        files = os.listdir(self.pathToMonth)
-        for f in files:
-            if f.endswith('.allow'):
-                with open(os.path.join(self.pathToMonth, f), 'r') as import_allow_list:
-                    for line in import_allow_list:
-                        self.allowSet.add(line.rstrip('\n'))
-                import_allow_list.close()
-        if len(self.allowSet) == 0:
-            raise ValueError('Allowed list empty, please run `preprocessing.py`')
-        logging.debug('allowSet: ' + str(self.allowSet))
 
     def removeSetOfTxsFromMempool(self, txsSet, mempool):
         try:
@@ -102,24 +87,14 @@ class Monthbuilder():
     def loadBlockMempool(self, blockId):
         fileFound = 0
         for file in os.listdir(self.pathToMonth):
-            if file.endswith(blockId+'.mempool'):
+            if file.endswith(blockId+'.diffpool'):
                 fileFound = 1
                 blockMempool = csb.Mempool()
                 blockMempool.fromTXT(os.path.join(self.pathToMonth, file))
                 blockTxsSet = set(blockMempool.txs.keys())
-                txsToRemove = blockTxsSet.difference(self.allowSet)
-                logging.debug("txsToRemove: " + str(txsToRemove))
-                if len(txsToRemove) > 0:
-                    logging.debug("block txs before pruning for allow set " + str(blockTxsSet))
-                    blockMempool = self.removeSetOfTxsFromMempool(txsToRemove, blockMempool)
-                    logging.debug("block txs after pruning for allow set " + str(blockMempool.txs.keys()))
                 for k in blockMempool.txs.keys():
-                    if k in self.globalMempool.txs:
-                        blockMempool.txs[k].parents = set(self.globalMempool.txs[k].parents) | set(blockMempool.txs[k].parents)
-                        blockMempool.txs[k].descendants = set(self.globalMempool.txs[k].descendants) | set(blockMempool.txs[k].descendants)
-
                     self.globalMempool.txs[k] = blockMempool.txs[k]
-                self.globalMempool.backfill_relatives() # ensure that all ancestors, children and descendants are set after merging global and block mempool
+                self.globalMempool.backfill_relatives(self.confirmedTxs) # ensure that all ancestors, children and descendants are set after merging global and block mempool
 
                 for k in list(self.globalMempool.txs.keys()):
                     if k in self.confirmedTxs:
@@ -129,7 +104,7 @@ class Monthbuilder():
         logging.debug("Global Mempool after loading block: " + str(self.globalMempool.txs.keys()))
 
         if fileFound == 0:
-            raise Exception("Mempool not found")
+            raise Exception("Diffpool for " + blockId + " not found")
 
     def loadCoinbaseSizes(self):
         for file in os.listdir(self.pathToMonth):
@@ -156,9 +131,9 @@ class Monthbuilder():
         builder_chooser = random.randint(1, asb_proportion - 0 + (csb_proportion-0))
         builder = None
         if (builder_chooser <= asb_proportion):
-            builder = asb.AncestorSetBlockbuilder(bbMempool, weightAllowance) # TODO: use coinbase size here
+            builder = asb.AncestorSetBlockbuilder(bbMempool, weightAllowance)
         else:
-            builder = csb.CandidateSetBlockbuilder(bbMempool, weightAllowance) # TODO: use coinbase size here
+            builder = csb.CandidateSetBlockbuilder(bbMempool, weightAllowance)
         logging.debug("Block Mempool after BB(): " + str(builder.mempool.txs.keys()))
         selectedTxs = builder.buildBlockTemplate()
         logging.debug("selectedTxs: " + str(selectedTxs))
