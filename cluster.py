@@ -123,8 +123,8 @@ class Cluster():
         self.eligibleTxs.update(self.txs)
         self.uselessTxs = {}
         logging.debug("Calculate bestCandidateSet at weightLimit of " + str(weightLimit) + " for cluster of " + str(len(self.txs)) + ": " + str(self))
-        if (len(self.txs) > 99):
-            self.export()
+        # if (len(self.txs) > 99):
+        #     self.export()
         bestCand = None # current best candidateSet
         previouslyEvaluated = set() # candidateSets that have been evaluated
         searchHeap = [] # candidates that still need to be evaluated
