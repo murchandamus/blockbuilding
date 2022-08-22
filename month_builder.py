@@ -33,9 +33,9 @@ def main(argv):
     asb_proportion = 0
     csb_proportion = 0
     if (args.asb == 0 and args.csb == 0):
-        print("Defaulting to candidate set based block building (`asb=0, csb=1`) since proportions were not specified")
-        asb_proportion = 0
-        csb_proportion = 1
+        print("Defaulting to ancestorset-based blockbuilding (`asb=1, csb=0`) since proportions were not specified")
+        asb_proportion = 1
+        csb_proportion = 0
     else:
         asb_proportion = args.asb
         csb_proportion = args.csb
