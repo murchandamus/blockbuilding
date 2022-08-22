@@ -1,3 +1,5 @@
+import logging
+
 # AncestorSets are used to track a transaction in the context of all its
 # ancestors. We lazily instantiate these just with the transaction and backfill
 # remaining data when we need it.
@@ -34,7 +36,7 @@ class AncestorSet():
         return self.getFeerate() > other.getFeerate()
 
     def update(self, txs):
-        print("Updating AncestorSet " + str(self) + " with " + str(txs))
+        logging.debug("Updating AncestorSet " + str(self) + " with " + str(txs))
         self.weight = -1
         self.feerate = -1
         for tx in txs:
@@ -58,14 +60,14 @@ class AncestorSet():
         return self.rep.ancestors
 
     def getAllDescendants(self):
-        print("getAllDescendants for: " + str(self))
+        logging.debug("getAllDescendants for: " + str(self))
         allDescendants = set()
         for tx in self.txs.values():
             allDescendants = allDescendants | set(tx.descendants)
 
-        print("allDescendants for " + str(self) + ":" + str(allDescendants))
+        logging.debug("allDescendants for " + str(self) + ":" + str(allDescendants))
         withoutSelf = list(allDescendants - set(self.txs.keys()))
-        print("allDescendants for " + str(self) + "after removing self:" + str(withoutSelf))
+        logging.debug("allDescendants for " + str(self) + "after removing self:" + str(withoutSelf))
         return withoutSelf
 
     def __str__(self):
