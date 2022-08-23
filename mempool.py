@@ -71,7 +71,7 @@ class Mempool():
                     furtherAncestors = set(self.txs[ancestor].parents) | set(self.txs[ancestor].ancestors)
                     searchList = list(set(searchList) | furtherAncestors)
                 elif (ancestor in confirmed_txs):
-                    print(str(ancestor) + ' removed for being confirmed')
+                    logging.debug(str(ancestor) + ' removed for being confirmed')
                 else:
                     raise Exception(str(ancestor) + " not confirmed, and not in mempool")
             tx.ancestors = list(set(allAncestors))

@@ -41,12 +41,12 @@ def main(argv):
         csb_proportion = args.csb
         print("Blocks will be randomly drawn from (`asb= " + str(asb_proportion) + ", csb= " + str(csb_proportion) + "`)")
 
-    date_now = datetime.datetime.now()
+    month_builder_start_time = datetime.datetime.now()
     result_dir = 'results_' + utils.get_timestamp() + '_asb_' + str(asb_proportion) + '_csb_' + str(csb_proportion) + '/'
     os.mkdir(result_dir)
     logfile = result_dir + utils.get_timestamp() + '_monthbuilder.log'
     logging.basicConfig(filename=logfile, level=logging.INFO)
-    logging.info("Starttime: " + date_now.isoformat())
+    logging.info("Starttime: " + month_builder_start_time.isoformat())
 
     logging.info("Making " + str(asb_proportion) + " ancestorset blocks per " + str(csb_proportion) + " candidateset blocks.")
 
@@ -70,6 +70,8 @@ def main(argv):
         mb.runBlockWithGlobalMempool(asb_proportion, csb_proportion)
         endTime = time.time()
         logging.info('building ' + blockfileName + ' elapsed time: ' + str(endTime - startTime))
+    month_builder_end_time = datetime.datetime.now()
+    logging.info("Endtime: " + month_builder_end_time + ', total elapsed time: ' + str(month_builder_start_time - month_builder_end_time))
 
 
 class Monthbuilder():
