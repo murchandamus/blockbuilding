@@ -4,8 +4,10 @@ import math
 import decimal
 from pathlib import Path
 import logging
+import time
 
 from transaction import Transaction
+
 
 # The Mempool class represents a transient state of what is available to be used in a blocktemplate at a specific height
 class Mempool():
@@ -13,12 +15,12 @@ class Mempool():
         self.txs = {}
         self.blockId = ''
 
+
     def fromDict(self, txDict, blockId = 'dictionary'):
         self.blockId = blockId
         for txid, tx in txDict.items():
             self.txs[txid] = tx
-        # backfill children from parents
-        self.backfill_relatives()
+
 
     def fromJSON(self, filePath):
         txsJSON = {}
@@ -36,8 +38,7 @@ class Mempool():
                 )
                 self.txs[txid] = tx
         import_file.close()
-        # backfill children from parents
-        self.backfill_relatives()
+
 
     def fromTXT(self, filePath, SplitBy=" "):
         logging.info("Loading mempool from " + filePath)
@@ -54,12 +55,11 @@ class Mempool():
                 self.txs[txid] = tx
         import_file.close()
         logging.debug("Mempool loaded")
-        # backfill children from parents
-        self.backfill_relatives()
         logging.info(str(len(self.txs))+ " txs loaded")
 
+
     def backfill_relatives(self, confirmed_txs={}):
-        logging.debug("Backfill, ancestors, parents, children, and descendants from parents and ancestors...")
+        startTime = time.time()
         for tx in self.txs.values():
             # Backfill ancestors
             allAncestors = set()
@@ -88,17 +88,22 @@ class Mempool():
 
         self.store_same_block_ancestry()
 
-        logging.debug("Ancestors, parents, children, and descendants backfilled")
+        endTime = time.time()
+        logging.info('Backfilling relatives finished, elapsed time: ' + str(endTime - startTime))
+
 
     def store_same_block_ancestry(self):
         for tx in self.txs.values():
             tx.same_block_ancestors = list(set([]) | set(tx.parents) | set(tx.ancestors))
 
+
     def getTx(self, txid):
         return self.txs[txid]
 
+
     def getTxs(self):
         return self.txs
+
 
     def removeConfirmedTx(self, txid):
         for d in self.txs[txid].descendants:
@@ -117,6 +122,7 @@ class Mempool():
                     logging.warning("Tx was in children, but not descendants")
 
         self.txs.pop(txid)
+
 
     def dropTx(self, txid):
         for a in self.txs[txid].ancestors:

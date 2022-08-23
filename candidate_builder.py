@@ -15,6 +15,7 @@ from transaction import Transaction
 from cluster import Cluster
 from candidateset import CandidateSet
 
+
 def main(argv):
     mempoolfilepath = ''
     try:
@@ -41,11 +42,15 @@ def main(argv):
     bb.buildBlockTemplate()
     bb.outputBlockTemplate(mempool.blockId)
     endTime = time.time()
-    logging.info('Elapsed time: ' + str(endTime - startTime))
+    logging.info('main() elapsed time: ' + str(endTime - startTime))
+
 
 class CandidateSetBlockbuilder(Blockbuilder):
+
+
     def __init__(self, mempool, weightLimit=3992820):
         self.mempool = mempool
+        self.mempool.backfill_relatives()
         self.refMempool = Mempool()
         self.refMempool.fromDict(mempool.txs)
         self.selectedTxs = []
@@ -60,7 +65,9 @@ class CandidateSetBlockbuilder(Blockbuilder):
         self.weightLimit = weightLimit
         self.availableWeight = self.weightLimit
 
+
     def cluster(self, weightLimit):
+        startTime = time.time()
         if len(self.clusters) == 0:
             for txid, tx in self.mempool.txs.items():
                 self.txsToBeClustered[txid] = tx
@@ -83,13 +90,16 @@ class CandidateSetBlockbuilder(Blockbuilder):
                 self.txClusterMap[lct] = localCluster.representative
             heapq.heappush(self.clusterHeap, localCluster)
 
-        logging.debug('finished cluster building')
         self.txsToBeClustered = {}
+        endTime = time.time()
+        logging.debug('cluster() elapsed time: ' + str(endTime - startTime))
         return self.clusters
+
 
     def popBestCandidateSet(self, weightLimit):
         # TODO: Don't cluster until an unclustered transaction bubbles up to highest feerate, then find that cluster and the corresponding champion
         logging.debug("Called popBestCandidateSet with weightLimit " + str(weightLimit))
+        startTime = time.time()
         self.cluster(weightLimit)
         bestCluster = heapq.heappop(self.clusterHeap) if len(self.clusterHeap) else None
         bestCandidateSet = bestCluster.bestCandidate if bestCluster is not None else None
@@ -132,9 +142,13 @@ class CandidateSetBlockbuilder(Blockbuilder):
             # delete modified cluster for recreation next round
             self.clusters.pop(bestCluster.representative)
 
+        endTime = time.time()
+        logging.debug('popBestCandidateSet() elapsed time: ' + str(endTime - startTime))
         return bestCandidateSet
 
+
     def buildBlockTemplate(self):
+        startTime = time.time()
         logging.info("Building blocktemplate...")
         for txid, tx in self.mempool.txs.items():
             self.txsToBeClustered[txid] = tx
@@ -154,7 +168,10 @@ class CandidateSetBlockbuilder(Blockbuilder):
                         txsIdsToAdd.remove(txid)
             self.availableWeight -= bestCandidateSet.getWeight()
 
+        endTime = time.time()
+        logging.info('buildBlockTemplate() elapsed time: ' + str(endTime - startTime))
         return self.selectedTxs
+
 
     def outputBlockTemplate(self, blockId="", result_dir="results/"):
         filePath = result_dir

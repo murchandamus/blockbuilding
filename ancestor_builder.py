@@ -13,6 +13,7 @@ import heapq
 import time
 import sys
 
+
 def main(argv):
     mempoolfilepath = ''
     try:
@@ -39,11 +40,15 @@ def main(argv):
     bb.buildBlockTemplate()
     bb.outputBlockTemplate(mempool.blockId)
     endTime = time.time()
-    logging.info('Elapsed time: ' + str(endTime - startTime))
+    logging.info('main() elapsed time: ' + str(endTime - startTime))
+
 
 class AncestorSetBlockbuilder(Blockbuilder):
+
+
     def __init__(self, mempool, weightLimit=3992820):
         self.mempool = mempool
+        self.mempool.backfill_relatives()
         self.refMempool = Mempool()
         self.refMempool.fromDict(mempool.txs)
         self.selectedTxs = []
@@ -52,13 +57,17 @@ class AncestorSetBlockbuilder(Blockbuilder):
         self.ancestorSets = []
         self.txAncestorSetMap = {}
 
+
     def initialize_stubs(self):
+        startTime = time.time()
         for txid, tx in self.mempool.txs.items():
             # Initialize all AncestorSets just with tx itself
             ancestorSet = AncestorSet(tx)
             logging.debug("AncestorSet created: " + str(ancestorSet))
             heapq.heappush(self.ancestorSets, ancestorSet)
             self.txAncestorSetMap[txid] = ancestorSet
+        endTime = time.time()
+        logging.info('initialize_stubs Elapsed time: ' + str(endTime - startTime))
 
     # Update incomplete AncestorSets lazily when relevant
     def backfill_incomplete_ancestor_set(self, ancestor_set):
@@ -93,6 +102,7 @@ class AncestorSetBlockbuilder(Blockbuilder):
                 self.txAncestorSetMap[txid].isObsolete = True
             self.mempool.removeConfirmedTx(txid)
 
+
     def reset_remaining_descendants(self, ancestor_set):
         remainingDescendants = ancestor_set.getAllDescendants()
 
@@ -106,7 +116,9 @@ class AncestorSetBlockbuilder(Blockbuilder):
                 self.txAncestorSetMap[d] = replacement
                 heapq.heappush(self.ancestorSets, replacement)
 
+
     def buildBlockTemplate(self):
+        startTime = time.time()
         logging.info("Building blocktemplate...")
         self.initialize_stubs()
 
@@ -126,7 +138,10 @@ class AncestorSetBlockbuilder(Blockbuilder):
                 self.add_to_block(bestAncestorSet)
                 self.reset_remaining_descendants(bestAncestorSet)
 
+        endTime = time.time()
+        logging.info('buildBlockTemplate: elapsed time: ' + str(endTime - startTime))
         return self.selectedTxs
+
 
     def outputBlockTemplate(self, blockId="", result_dir="results/"):
         filePath = result_dir

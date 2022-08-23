@@ -4,6 +4,7 @@ import utils
 
 import argparse
 import datetime
+import time
 import logging
 import os
 import random
@@ -20,7 +21,7 @@ The flow of this class is roughly:
     3) Merge txs from current mempool with the `globalMempool`, combining ancestry information
     4) Remove confirmed transactions from the `globalMempool`
     5) Instantiate a blockbuilder with a copy of the `globalMempool`
-    6) Build block, add selected transactions to the `confirmedTxs`
+    6) Build block, add selected transactions to the `confirmed_txs`
     7) Increment height, repeat from 3)
 """
 def main(argv):
@@ -64,17 +65,22 @@ def main(argv):
             logging.info('Height ' + str(mb.height) + ' not found, done')
             break
         logging.info("Starting block: " + blockfileName)
+        startTime = time.time()
         mb.loadBlockMempool(blockfileName)
         mb.runBlockWithGlobalMempool(asb_proportion, csb_proportion)
+        endTime = time.time()
+        logging.info('building ' + blockfileName + ' elapsed time: ' + str(endTime - startTime))
+
 
 class Monthbuilder():
     def __init__(self, monthPath, result_dir="results/"):
         self.pathToMonth = monthPath
         self.globalMempool = csb.Mempool()
-        self.confirmedTxs = set()
+        self.confirmed_txs = set()
         self.height = -1
         self.coinbaseSizes = {}
         self.result_dir = result_dir
+
 
     def removeSetOfTxsFromMempool(self, txsSet, mempool):
         try:
@@ -83,6 +89,7 @@ class Monthbuilder():
         except KeyError:
             logging.error("tx to delete not found" + k)
         return mempool
+
 
     def loadBlockMempool(self, blockId):
         fileFound = 0
@@ -93,18 +100,20 @@ class Monthbuilder():
                 blockMempool.fromTXT(os.path.join(self.pathToMonth, file))
                 blockTxsSet = set(blockMempool.txs.keys())
                 for k in blockMempool.txs.keys():
+                    if (k in self.globalMempool.txs):
+                        raise Exception(k + ' loaded from .diffpool, but already in globalMempool')
                     self.globalMempool.txs[k] = blockMempool.txs[k]
-                self.globalMempool.backfill_relatives(self.confirmedTxs) # ensure that all ancestors, children and descendants are set after merging global and block mempool
+                self.globalMempool.backfill_relatives(self.confirmed_txs) # ensure that all ancestors, children and descendants are set after merging global and block mempool
 
-                for k in list(self.globalMempool.txs.keys()):
-                    if k in self.confirmedTxs:
-                        self.globalMempool.removeConfirmedTx(k)
+                for k in set(self.globalMempool.txs.keys()).intersection(self.confirmed_txs):
+                    self.globalMempool.removeConfirmedTx(k)
                 self.globalMempool.fromDict(self.globalMempool.txs, blockId)
 
         logging.debug("Global Mempool after loading block: " + str(self.globalMempool.txs.keys()))
 
         if fileFound == 0:
             raise Exception("Diffpool for " + blockId + " not found")
+
 
     def loadCoinbaseSizes(self):
         for file in os.listdir(self.pathToMonth):
@@ -118,7 +127,9 @@ class Monthbuilder():
         if len(self.coinbaseSizes) == 0:
             raise Exception('Coinbase file not found, please run `preprocessing.py`')
 
+
     def runBlockWithGlobalMempool(self, asb_proportion=0, csb_proportion=1):
+        startTime = time.time()
         coinbaseSizeForCurrentBlock = self.coinbaseSizes[self.height]
         logging.info("Current height: " + str(self.height))
         weightAllowance = 4000000 - int(coinbaseSizeForCurrentBlock)
@@ -127,19 +138,25 @@ class Monthbuilder():
         bbMempool = csb.Mempool()
         bbMempool.fromDict(self.globalMempool.txs)
         # After loading block mempool, store ancestors for each transaction in permanent field
+        bbMempool.backfill_relatives(self.confirmed_txs)
         bbMempool.store_same_block_ancestry()
-        builder_chooser = random.randint(1, asb_proportion - 0 + (csb_proportion-0))
+        builder_type = ''
         builder = None
-        if (builder_chooser <= asb_proportion):
+        if (random.randint(1, asb_proportion + csb_proportion) <= asb_proportion):
+            builder_type = 'ASB'
             builder = asb.AncestorSetBlockbuilder(bbMempool, weightAllowance)
         else:
+            builder_type = 'CSB'
             builder = csb.CandidateSetBlockbuilder(bbMempool, weightAllowance)
         logging.debug("Block Mempool after BB(): " + str(builder.mempool.txs.keys()))
         selectedTxs = builder.buildBlockTemplate()
         logging.debug("selectedTxs: " + str(selectedTxs))
-        self.confirmedTxs = set(selectedTxs).union(self.confirmedTxs)
+        self.confirmed_txs = set(selectedTxs).union(self.confirmed_txs)
         builder.outputBlockTemplate(self.height, self.result_dir) # TODO: Height+blockhash?
         self.globalMempool.fromDict(bbMempool.txs)
+        endTime = time.time()
+        logging.info('runBlockWithGlobalMempool() [' + builder_type + '] elapsed time: ' + str(endTime - startTime))
+
 
     def getNextBlockHeight(self):
         ## Assume that there are mempool files in folder and they are prefixed with a _seven_ digit block height
