@@ -21,7 +21,6 @@ class Transaction():
         if descendants is None:
             descendants = []
         self.descendants = set([] + descendants)
-        self.registered_with_ancestors = False
 
     def createExportDict(self):
         txRep = { 'fee': self.fee, 'weight': self.weight, 'spentby': list(self.children), 'depends': list(self.parents) }

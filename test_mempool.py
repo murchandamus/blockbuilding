@@ -3,6 +3,8 @@ from mempool import Mempool
 from transaction import Transaction
 
 class TestMempool(unittest.TestCase):
+
+
     def setUp(self):
         self.testDict = {
             "123": Transaction("123", 100, 100, [], ["abc"]),
@@ -12,6 +14,7 @@ class TestMempool(unittest.TestCase):
             "tuv": Transaction("tuv", 100, 100, ["qrs"], []),  # low feerate
             "xyz": Transaction("xyz", 10, 10, [], [])
         }
+
 
     def test_parse_from_TXT(self):
         mempool = Mempool()
@@ -25,10 +28,12 @@ class TestMempool(unittest.TestCase):
         for txid in txids:
             self.assertEqual(True, txid in keys)
 
+
     def get_mempool_json(self):
         mempool = Mempool()
         mempool.fromJSON("data/mini-mempool.json")
         return mempool
+
 
     def test_parse_from_JSON(self):
         expectedTxids = [
@@ -48,12 +53,23 @@ class TestMempool(unittest.TestCase):
         txids.sort()
         self.assertEqual(expectedTxids, txids)
 
+
+    def test_backfill_relatives(self):
+        mempool = Mempool()
+        mempool.fromDict(self.testDict)
+        self.assertIn('nop', mempool.txs['tuv'].ancestors)
+        self.assertNotIn('nop', mempool.txs['tuv'].parents)
+        self.assertIn('tuv', mempool.txs['nop'].descendants)
+        self.assertNotIn('tuv', mempool.txs['nop'].children)
+
+
     def test_mempool_fee(self):
         txs = self.get_mempool_json().getTxs()
         self.assertEqual(
             13120,
             txs["88b75cf4ef99814d1f3f2245800b93aa400e92cfeae763f1334f3059232204a7"].fee
         )
+
 
     def test_drop_tx(self):
         mempool = Mempool()
@@ -64,6 +80,7 @@ class TestMempool(unittest.TestCase):
         self.assertNotIn('qrs', mempool.txs['nop'].children)
         self.assertIn('qrs', mempool.txs['tuv'].parents)
 
+
     def test_drop_tx_called_twice_throws(self):
         mempool = Mempool()
         mempool.fromDict(self.testDict)
@@ -72,6 +89,7 @@ class TestMempool(unittest.TestCase):
         self.assertNotIn('qrs', mempool.txs.keys())
         with self.assertRaises(KeyError):
             mempool.dropTx('qrs')
+
 
     def test_remove_confirmed_tx(self):
         mempool = Mempool()

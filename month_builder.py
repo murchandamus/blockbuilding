@@ -71,7 +71,7 @@ def main(argv):
         endTime = time.time()
         logging.info('building ' + blockfileName + ' elapsed time: ' + str(endTime - startTime))
     month_builder_end_time = datetime.datetime.now()
-    logging.info("Endtime: " + month_builder_end_time + ', total elapsed time: ' + str(month_builder_start_time - month_builder_end_time))
+    logging.info("Endtime: " + str(month_builder_end_time) + ', total elapsed time: ' + str(month_builder_start_time - month_builder_end_time))
 
 
 class Monthbuilder():
@@ -99,7 +99,8 @@ class Monthbuilder():
             if file.endswith(blockId+'.diffpool'):
                 fileFound = 1
                 blockMempool = csb.Mempool()
-                blockMempool.fromTXT(os.path.join(self.pathToMonth, file))
+                # Do not backfill relatives on loading diffpool, ancestors may not be present
+                blockMempool.fromTXT(os.path.join(self.pathToMonth, file), False)
                 blockTxsSet = set(blockMempool.txs.keys())
                 for k in blockMempool.txs.keys():
                     if (k in self.globalMempool.txs):

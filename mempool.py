@@ -16,13 +16,15 @@ class Mempool():
         self.blockId = ''
 
 
-    def fromDict(self, txDict, blockId = 'dictionary'):
+    def fromDict(self, txDict, backfill = True, blockId = 'dictionary'):
         self.blockId = blockId
         for txid, tx in txDict.items():
             self.txs[txid] = tx
+        if backfill:
+            self.backfill_relatives()
 
 
-    def fromJSON(self, filePath):
+    def fromJSON(self, filePath, backfill = True):
         txsJSON = {}
         with open(filePath, 'r') as import_file:
             self.blockId = Path(filePath).stem
@@ -38,9 +40,11 @@ class Mempool():
                 )
                 self.txs[txid] = tx
         import_file.close()
+        if backfill:
+            self.backfill_relatives()
 
 
-    def fromTXT(self, filePath, SplitBy=" "):
+    def fromTXT(self, filePath, backfill = True, SplitBy=" "):
         logging.info("Loading mempool from " + filePath)
         with open(filePath, 'r') as import_file:
             self.blockId = Path(filePath).stem
@@ -54,45 +58,52 @@ class Mempool():
                 tx = Transaction(txid, int(elements[1]), int(elements[2]), None, None, elements[3:])
                 self.txs[txid] = tx
         import_file.close()
+        if backfill:
+            self.backfill_relatives()
         logging.debug("Mempool loaded")
         logging.info(str(len(self.txs))+ " txs loaded")
 
 
-    def backfill_relatives(self, confirmed_txs={}):
-        startTime = time.time()
-        for tx in self.txs.values():
-            if tx.registered_with_ancestors:
-                continue
-            # Backfill ancestors
-            allAncestors = set()
-            searchList = list(set(tx.parents) | set(tx.ancestors))
-            searched = set()
-            while len(searchList) > 0:
-                ancestor = searchList.pop()
-                if (ancestor in searched):
-                    continue
-                else:
-                    searched.add(ancestor)
-                if (ancestor in self.txs):
-                    allAncestors.add(ancestor)
-                    searchList = list(set(searchList) | set(self.txs[ancestor].parents) | set(self.txs[ancestor].ancestors))
-                elif (ancestor in confirmed_txs):
+    # Recursive helper function for backfill_relatives() that ensures that
+    # ancestors have been backfilled before adding them to a descendant
+    def get_backfilled_ancestors(self, tx, backfilled, confirmed_txs={}):
+        if tx.txid not in backfilled:
+            # assume any ancestors may be parents
+            all_ancestors = tx.parents.union(tx.ancestors)
+            tx.parents = set(all_ancestors)
+            tx.ancestors = set()
+            for ancestor in all_ancestors:
+                if ancestor in confirmed_txs:
                     logging.debug(str(ancestor) + ' removed for being confirmed')
-                else:
+                    tx.parents.remove(ancestor)
+                    continue
+                elif ancestor not in self.txs:
                     raise Exception(str(ancestor) + " not confirmed, and not in mempool")
-            tx.ancestors = list(allAncestors)
-
-            nonParentAncestors = set()
+                tx.ancestors.add(ancestor)
+                further_ancestors = self.get_backfilled_ancestors(self.txs[ancestor], backfilled, confirmed_txs)
+                # Prune ancestors of ancestors from parents
+                tx.parents.difference_update(further_ancestors)
+                tx.ancestors.update(further_ancestors)
             for a in tx.ancestors:
                 self.txs[a].descendants.add(tx.txid)
-                nonParentAncestors.update(set(self.txs[a].ancestors).intersection(set(tx.ancestors)))
-            tx.parents = set(tx.ancestors) - nonParentAncestors
-            tx.permanent_parents = set(list(tx.parents))
             for p in tx.parents:
                 self.txs[p].children.add(tx.txid)
+            backfilled.add(tx.txid)
+        return tx.ancestors
+
+
+    def backfill_relatives(self, confirmed_txs={}):
+        startTime = time.time()
+        backfilled = set()
+        for tx in self.txs.values():
+            if tx.txid not in backfilled:
+                # Recursively backfills parents before the called transaction itself
+                self.get_backfilled_ancestors(tx, backfilled, confirmed_txs)
+            # Transaction's parents and ancestors must be complete now
+            tx.permanent_parents = set(list(tx.parents))
+
             if len(tx.ancestors) < len(tx.parents):
                 raise Exception("Fewer ancestors than parents")
-            tx.registered_with_ancestors = True
 
         endTime = time.time()
         logging.info('Backfilling relatives finished, elapsed time: ' + str(endTime - startTime))

@@ -90,7 +90,7 @@ class AncestorSetBlockbuilder(Blockbuilder):
         while len(txsIdsToAdd) > 0:
             for txid in txsIdsToAdd:
                 logging.debug("Try adding txid: " + str(txid))
-                if set(self.mempool.txs[txid].permanent_parents).issubset(set(self.selectedTxs)):
+                if set(ancestor_set.txs[txid].permanent_parents).issubset(set(self.selectedTxs)):
                     self.selectedTxs.append(txid)
                     txsIdsToAdd.remove(txid)
         self.availableWeight -= ancestor_set.getWeight()
