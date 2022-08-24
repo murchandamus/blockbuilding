@@ -106,7 +106,7 @@ class CandidateSetBlockbuilder(Blockbuilder):
             # ensures bestCandidate of last cluster gets evaluated and included
             bestCandidateSet = bestCluster.getBestCandidateSet(weightLimit) if bestCluster is not None else None
         # If bestCandidateSet exceeds weightLimit, refresh bestCluster and get next best cluster
-        while (bestCandidateSet is None or bestCandidateSet.getWeight() > weightLimit) and len(self.clusterHeap) > 0:
+        while (bestCandidateSet is None or bestCandidateSet.get_weight() > weightLimit) and len(self.clusterHeap) > 0:
             # Update best candidate set in cluster with weight limit
             if bestCandidateSet is not None:
                 logging.debug("bestCandidateSet " + str(bestCandidateSet) + " is over weight limit: " + str(weightLimit))
@@ -118,7 +118,7 @@ class CandidateSetBlockbuilder(Blockbuilder):
                 bestCluster = heapq.heappushpop(self.clusterHeap, bestCluster)
             bestCandidateSet = bestCluster.bestCandidate
 
-        if bestCandidateSet is not None and bestCandidateSet.getWeight() > weightLimit:
+        if bestCandidateSet is not None and bestCandidateSet.get_weight() > weightLimit:
             bestCandidateSet = None
 
         logging.debug("best candidate from all clusters: " + str(bestCandidateSet))
@@ -158,14 +158,10 @@ class CandidateSetBlockbuilder(Blockbuilder):
             bestCandidateSet = self.popBestCandidateSet(self.availableWeight)
             if bestCandidateSet is None or len(bestCandidateSet.txs) == 0:
                 break
-            txsIdsToAdd = list(bestCandidateSet.txs.keys())
-            while len(txsIdsToAdd) > 0:
-                for txid in txsIdsToAdd:
-                    logging.debug("Try adding txid: " + str(txid))
-                    if set(bestCandidateSet.txs[txid].permanent_parents).issubset(set(self.selectedTxs)):
-                        self.selectedTxs.append(txid)
-                        txsIdsToAdd.remove(txid)
-            self.availableWeight -= bestCandidateSet.getWeight()
+            txsIdsToAdd = bestCandidateSet.get_topologically_sorted_txids() 
+            logging.debug("txsIdsToAdd: " + str(txsIdsToAdd))
+            self.selectedTxs.extend(txsIdsToAdd)
+            self.availableWeight -= bestCandidateSet.get_weight()
 
         endTime = time.time()
         logging.info('buildBlockTemplate() elapsed time: ' + str(endTime - startTime))
@@ -183,8 +179,8 @@ class CandidateSetBlockbuilder(Blockbuilder):
             logging.debug(self.selectedTxs)
             if len(self.selectedTxs) > 0:
                 selected = CandidateSet({txid: self.refMempool.txs[txid] for txid in self.selectedTxs})
-                output_file.write('CreateNewBlockByClusters(): fees ' + str(selected.getFees()) +
-                                  ' weight ' + str(selected.getWeight()) + ' size limit ' +
+                output_file.write('CreateNewBlockByClusters(): fees ' + str(selected.get_fees()) +
+                                  ' weight ' + str(selected.get_weight()) + ' size limit ' +
                                   str(self.weightLimit) +'\n')
             else:
                 output_file.write('CreateNewBlockByClusters(): fees ' + '0' +

@@ -31,21 +31,21 @@ class TestCandidateSet(unittest.TestCase):
 
     def test_candidate_set_get_weight(self):
         cand = CandidateSet({"123": self.testDict["123"], "abc": self.testDict["abc"]})
-        self.assertEqual(cand.getWeight(), 200)
+        self.assertEqual(cand.get_weight(), 200)
 
     def test_candidate_set_get_fees(self):
         cand = CandidateSet({"123": self.testDict["123"], "abc": self.testDict["abc"]})
-        self.assertEqual(cand.getFees(), 200)
+        self.assertEqual(cand.get_fees(), 200)
 
     def test_candidate_set_get_effective_feerate(self):
         cand = CandidateSet({"123": self.testDict["123"], "abc": self.testDict["abc"]})
-        self.assertEqual(cand.getEffectiveFeerate(), 1)
+        self.assertEqual(cand.get_feerate(), 1)
 
     def test_candidate_set_get_effective_feerate_can_be_float(self):
         cand = CandidateSet({"123": self.testDict["123"], "abc": self.testDict["abc"]})
         self.testDict['123'].fee = 25
         print('cand for feeRate: '  +  str(cand))
-        self.assertEqual(cand.getEffectiveFeerate(), 0.625)
+        self.assertEqual(cand.get_feerate(), 0.625)
 
 if __name__ == '__main__':
     unittest.main()

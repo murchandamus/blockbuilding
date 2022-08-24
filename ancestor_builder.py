@@ -84,15 +84,10 @@ class AncestorSetBlockbuilder(Blockbuilder):
     def add_to_block(self, ancestor_set):
         if not ancestor_set.isComplete:
             raise ValueError("add_to_block called with incomplete AncestorSet: " + str(ancestor_set))
-        txsIdsToAdd = list(ancestor_set.txs.keys())
+        txsIdsToAdd = ancestor_set.get_topologically_sorted_txids()
         logging.debug("txsIdsToAdd: " + str(txsIdsToAdd))
-        while len(txsIdsToAdd) > 0:
-            for txid in txsIdsToAdd:
-                logging.debug("Try adding txid: " + str(txid))
-                if set(ancestor_set.txs[txid].permanent_parents).issubset(set(self.selectedTxs)):
-                    self.selectedTxs.append(txid)
-                    txsIdsToAdd.remove(txid)
-        self.availableWeight -= ancestor_set.getWeight()
+        self.selectedTxs.extend(txsIdsToAdd)
+        self.availableWeight -= ancestor_set.get_weight()
 
         # remove included txs from mempool and lazy delete their ancestor sets
         for txid in ancestor_set.txs.keys():
@@ -129,7 +124,7 @@ class AncestorSetBlockbuilder(Blockbuilder):
             elif not bestAncestorSet.isComplete:
                 # Update incomplete AncestorSets lazily when they bubble to the top
                 self.backfill_incomplete_ancestor_set(bestAncestorSet)
-            elif bestAncestorSet.getWeight() > self.availableWeight:
+            elif bestAncestorSet.get_weight() > self.availableWeight:
                 # complete, but too big: discard
                 continue
             else:
@@ -154,8 +149,8 @@ class AncestorSetBlockbuilder(Blockbuilder):
             if len(self.selectedTxs) > 0:
                 # TODO: Implement generic transaction set instead of this misuse
                 selected = CandidateSet({txid: self.refMempool.txs[txid] for txid in self.selectedTxs})
-                output_file.write('CreateNewBlockByAncestors(): fees ' + str(selected.getFees()) +
-                                  ' weight ' + str(selected.getWeight()) + ' size limit ' +
+                output_file.write('CreateNewBlockByAncestors(): fees ' + str(selected.get_fees()) +
+                                  ' weight ' + str(selected.get_weight()) + ' size limit ' +
                                   str(self.weightLimit) +'\n')
             else:
                 output_file.write('CreateNewBlockByAncestors(): fees ' + '0' +

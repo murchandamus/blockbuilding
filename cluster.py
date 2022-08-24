@@ -12,7 +12,7 @@ class Cluster():
         self.txs = {tx.txid: tx}
         self.ancestorSets = None
         self.bestCandidate = None
-        self.bestFeerate = tx.getFeerate()
+        self.bestFeerate = tx.get_feerate()
         self.weightLimit = weightLimit
         self.eligibleTxs = {tx.txid: tx}
         self.uselessTxs = {}
@@ -37,7 +37,7 @@ class Cluster():
         self.txs[tx.txid] = tx
         self.eligibleTxs[tx.txid] = tx
         self.representative = min(tx.txid, self.representative)
-        self.bestFeerate = max(self.bestFeerate, tx.getFeerate())
+        self.bestFeerate = max(self.bestFeerate, tx.get_feerate())
 
     def __lt__(self, other):
         if self.bestFeerate == other.bestFeerate:
@@ -45,7 +45,7 @@ class Cluster():
                 return False
             if self.bestCandidate is None:
                 return True
-            return self.bestCandidate.getWeight() > other.bestCandidate.getWeight()
+            return self.bestCandidate.get_weight() > other.bestCandidate.get_weight()
         return self.bestFeerate > other.bestFeerate
 
     def __str__(self):
@@ -77,7 +77,7 @@ class Cluster():
             nothingChanged = True
             prune = []
             for txid, tx in self.eligibleTxs.items():
-                if tx.getFeerate() >= bestFeerate:
+                if tx.get_feerate() >= bestFeerate:
                     continue
                 if len(tx.children) == 0:
                     # can never be part of best candidate set, due to low feerate and no children
@@ -104,7 +104,7 @@ class Cluster():
                 continue
             # Skip children of lower feerate than candidate set without children
             descendant = self.txs[d]
-            descendantFeeRate = descendant.getFeerate()
+            descendantFeeRate = descendant.get_feerate()
             # Ensure this is a new dictionary instead of modifying an existing
             expandedSetTxs = {descendant.txid: descendant}
             # Add ancestry
@@ -117,7 +117,7 @@ class Cluster():
 
     def getBestCandidateSet(self, weightLimit):
         self.weightLimit = min(weightLimit, self.weightLimit)
-        if self.bestCandidate is not None and self.bestCandidate.getWeight() <= self.weightLimit:
+        if self.bestCandidate is not None and self.bestCandidate.get_weight() <= self.weightLimit:
             return self.bestCandidate
         self.eligibleTxs = {}
         self.eligibleTxs.update(self.txs)
@@ -132,32 +132,32 @@ class Cluster():
         for txid in self.eligibleTxs.keys():
             #TODO: sort transactions by feerate, stop seeding candidate sets when feerate of transaction is smaller than the setfeerate of bestCand
             cand = self.assembleAncestry(txid)
-            if cand.getWeight() <= self.weightLimit:
-                if bestCand is None or bestCand.getEffectiveFeerate() < cand.getEffectiveFeerate() or (bestCand.getEffectiveFeerate() == cand.getEffectiveFeerate() and bestCand.getWeight() < cand.getWeight()):
+            if cand.get_weight() <= self.weightLimit:
+                if bestCand is None or bestCand.get_feerate() < cand.get_feerate() or (bestCand.get_feerate() == cand.get_feerate() and bestCand.get_weight() < cand.get_weight()):
                     bestCand = cand
                     logging.debug('ancestrySet is new best candidate set in cluster ' + str(bestCand))
                 heapq.heappush(searchHeap, bestCand)
 
         if bestCand is not None:
-            self.pruneEligibleTxs(bestCand.getEffectiveFeerate())
+            self.pruneEligibleTxs(bestCand.get_feerate())
             heapq.heappush(searchHeap, CandidateSet(self.eligibleTxs))
 
         while len(searchHeap) > 0 and len(previouslyEvaluated) < 1000:
             nextCS = heapq.heappop(searchHeap)
             if nextCS is None or len(nextCS.txs) == 0 or nextCS in previouslyEvaluated:
                 pass
-            elif nextCS.getWeight() > self.weightLimit:
+            elif nextCS.get_weight() > self.weightLimit:
                 previouslyEvaluated.add(nextCS)
             else:
                 previouslyEvaluated.add(nextCS)
-                if (nextCS.getEffectiveFeerate() > bestCand.getEffectiveFeerate() or (nextCS.getEffectiveFeerate() == bestCand.getEffectiveFeerate() and nextCS.getWeight() > bestCand.getWeight())):
+                if (nextCS.get_feerate() > bestCand.get_feerate() or (nextCS.get_feerate() == bestCand.get_feerate() and nextCS.get_weight() > bestCand.get_weight())):
                     bestCand = nextCS
                     logging.debug('new best candidate set in cluster ' + str(bestCand))
-                    self.pruneEligibleTxs(bestCand.getEffectiveFeerate())
+                    self.pruneEligibleTxs(bestCand.get_feerate())
                     heapq.heappush(searchHeap, CandidateSet(self.eligibleTxs))
-                searchCandidates = self.expandCandidateSet(nextCS, bestCand.getEffectiveFeerate())
+                searchCandidates = self.expandCandidateSet(nextCS, bestCand.get_feerate())
                 for sc in searchCandidates:
-                    if nextCS.getWeight() > self.weightLimit:
+                    if nextCS.get_weight() > self.weightLimit:
                         pass
                     elif any(sc == x for x in previouslyEvaluated):
                         pass
@@ -166,7 +166,7 @@ class Cluster():
         logging.debug('expanded ' + str(len(previouslyEvaluated)) + ' candidateSets cluster ' + str(self.representative))
         self.bestCandidate = bestCand
         if bestCand is not None:
-            self.bestFeerate = bestCand.getEffectiveFeerate()
+            self.bestFeerate = bestCand.get_feerate()
         else:
             self.bestFeerate = -1
 

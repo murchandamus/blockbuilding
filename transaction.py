@@ -8,6 +8,7 @@ class Transaction():
         self.fee = int(fee)
         self.feerate = None
         self.weight = int(weight)
+        self.hash = None
         if parents is None:
             parents = []
         self.parents = set([] + parents)
@@ -26,7 +27,7 @@ class Transaction():
         txRep = { 'fee': self.fee, 'weight': self.weight, 'spentby': list(self.children), 'depends': list(self.parents) }
         return txRep
 
-    def getFeerate(self):
+    def get_feerate(self):
         if not self.feerate:
             self.feerate = self.fee / self.weight
         return self.feerate
@@ -47,9 +48,9 @@ class Transaction():
 
     def __lt__(self, other):
         # Sort highest feerate first, use highest weight as tiebreaker
-        if self.getFeerate() == other.getFeerate():
+        if self.get_feerate() == other.get_feerate():
             return self.weight > other.weight
-        return self.getFeerate() > other.getFeerate()
+        return self.get_feerate() > other.get_feerate()
 
     def __hash__(self):
         if self.hash is None:

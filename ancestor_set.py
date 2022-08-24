@@ -1,26 +1,24 @@
 import logging
 
+from txset import TransactionSet
+
 # AncestorSets are used to track a transaction in the context of all its
 # ancestors. We lazily instantiate these just with the transaction and backfill
 # remaining data when we need it.
 
-class AncestorSet():
+class AncestorSet(TransactionSet):
     def __init__(self, rep):
         self.rep = rep
         self.txs = {rep.txid: rep}
         self.isComplete = False
         self.isObsolete = False
-        self.weight = -1
-        self.feerate = -1
-        self.hash = None
+
+        TransactionSet.__init__(self, self.txs)
+
 
     def __repr__(self):
-        return "AncestorSet(%s, %s, %s)" % (str(self.rep.txid), str(sorted(list(self.txs.keys()))), str(self.getFeerate()))
+        return "AncestorSet(%s, %s, %s)" % (str(self.rep.txid), str(sorted(list(self.txs.keys()))), str(self.get_feerate()))
 
-    def __hash__(self):
-        if self.hash is None:
-            self.hash = hash(self.__repr__())
-        return self.hash
 
     def __eq__(self, other):
         """Overrides the default implementation"""
@@ -28,12 +26,14 @@ class AncestorSet():
             return self.__hash__() == other.__hash__()
         return NotImplemented
 
+
     def __lt__(self, other):
-        if self.getFeerate() == other.getFeerate():
+        if self.get_feerate() == other.get_feerate():
             if self.isComplete != other.isComplete:
                 return other.isComplete
-            return self.getWeight() > other.getWeight()
-        return self.getFeerate() > other.getFeerate()
+            return self.get_weight() > other.get_weight()
+        return self.get_feerate() > other.get_feerate()
+
 
     def update(self, txs):
         logging.debug("Updating AncestorSet " + str(self) + " with " + str(txs))
@@ -43,21 +43,10 @@ class AncestorSet():
             self.txs[tx.txid] = tx
         self.isComplete = True
 
-    def getWeight(self):
-        if self.weight < 0:
-            self.weight = sum(tx.weight for tx in self.txs.values())
-        return self.weight
-
-    def getFees(self):
-        return sum(tx.fee for tx in self.txs.values())
-
-    def getFeerate(self):
-        if self.feerate < 0:
-            self.feerate = self.getFees()/self.getWeight()
-        return self.feerate
 
     def getAncestorTxids(self):
         return self.rep.ancestors
+
 
     def getAllDescendants(self):
         logging.debug("getAllDescendants for: " + str(self))
@@ -70,6 +59,7 @@ class AncestorSet():
         logging.debug("allDescendants for " + str(self) + "after removing self:" + str(withoutSelf))
         return withoutSelf
 
+
     def __str__(self):
-        return "{txid: " + str(self.rep.txid) + " feerate: " + str(self.getFeerate()) + ", txs: "+ str(list(self.txs.keys())) + " isComplete: " + str(self.isComplete) + "}"
+        return "{txid: " + str(self.rep.txid) + " feerate: " + str(self.get_feerate()) + ", txs: "+ str(list(self.txs.keys())) + " isComplete: " + str(self.isComplete) + "}"
 
