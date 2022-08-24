@@ -48,9 +48,8 @@ class AncestorSetBlockbuilder(Blockbuilder):
 
     def __init__(self, mempool, weightLimit=3992820):
         self.mempool = mempool
-        self.mempool.backfill_relatives()
         self.refMempool = Mempool()
-        self.refMempool.fromDict(mempool.txs)
+        self.refMempool.fromDict(mempool.txs, False)
         self.selectedTxs = []
         self.availableWeight = weightLimit
         self.weightLimit = weightLimit

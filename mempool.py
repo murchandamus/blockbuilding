@@ -16,7 +16,7 @@ class Mempool():
         self.blockId = ''
 
 
-    def fromDict(self, txDict, backfill = True, blockId = 'dictionary'):
+    def fromDict(self, txDict, backfill=True, confirmed_txs={}, blockId = 'dictionary'):
         self.blockId = blockId
         for txid, tx in txDict.items():
             self.txs[txid] = tx
@@ -24,7 +24,7 @@ class Mempool():
             self.backfill_relatives()
 
 
-    def fromJSON(self, filePath, backfill = True):
+    def fromJSON(self, filePath, backfill=True, confirmed_txs={}):
         txsJSON = {}
         with open(filePath, 'r') as import_file:
             self.blockId = Path(filePath).stem
@@ -41,10 +41,10 @@ class Mempool():
                 self.txs[txid] = tx
         import_file.close()
         if backfill:
-            self.backfill_relatives()
+            self.backfill_relatives(confirmed_txs)
 
 
-    def fromTXT(self, filePath, backfill = True, SplitBy=" "):
+    def fromTXT(self, filePath, backfill=True, confirmed_txs={}, SplitBy=" "):
         logging.info("Loading mempool from " + filePath)
         with open(filePath, 'r') as import_file:
             self.blockId = Path(filePath).stem
@@ -59,7 +59,7 @@ class Mempool():
                 self.txs[txid] = tx
         import_file.close()
         if backfill:
-            self.backfill_relatives()
+            self.backfill_relatives(confirmed_txs)
         logging.debug("Mempool loaded")
         logging.info(str(len(self.txs))+ " txs loaded")
 
@@ -93,7 +93,7 @@ class Mempool():
 
 
     def backfill_relatives(self, confirmed_txs={}):
-        startTime = time.time()
+        start_time = time.time()
         backfilled = set()
         for tx in self.txs.values():
             if tx.txid not in backfilled:
@@ -105,8 +105,8 @@ class Mempool():
             if len(tx.ancestors) < len(tx.parents):
                 raise Exception("Fewer ancestors than parents")
 
-        endTime = time.time()
-        logging.info('Backfilling relatives finished, elapsed time: ' + str(endTime - startTime))
+        end_time = time.time()
+        logging.info('Backfilling relatives finished, elapsed time: ' + str(end_time - start_time))
 
 
     def getTx(self, txid):

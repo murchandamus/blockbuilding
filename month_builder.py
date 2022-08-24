@@ -65,13 +65,13 @@ def main(argv):
             logging.info('Height ' + str(mb.height) + ' not found, done')
             break
         logging.info("Starting block: " + blockfileName)
-        startTime = time.time()
+        block_start_time = time.time()
         mb.loadBlockMempool(blockfileName)
         mb.runBlockWithGlobalMempool(asb_proportion, csb_proportion)
-        endTime = time.time()
-        logging.info('building ' + blockfileName + ' elapsed time: ' + str(endTime - startTime))
+        block_end_time = time.time()
+        logging.info('building ' + blockfileName + ' elapsed time: ' + str(block_end_time - block_start_time))
     month_builder_end_time = datetime.datetime.now()
-    logging.info("Endtime: " + str(month_builder_end_time) + ', total elapsed time: ' + str(month_builder_start_time - month_builder_end_time))
+    logging.info("Endtime: " + str(month_builder_end_time) + ', total elapsed time: ' + str(month_builder_end_time - month_builder_start_time))
 
 
 class Monthbuilder():
@@ -99,18 +99,16 @@ class Monthbuilder():
             if file.endswith(blockId+'.diffpool'):
                 fileFound = 1
                 blockMempool = csb.Mempool()
-                # Do not backfill relatives on loading diffpool, ancestors may not be present
-                blockMempool.fromTXT(os.path.join(self.pathToMonth, file), False)
+                blockMempool.fromTXT(os.path.join(self.pathToMonth, file), False) # Do not backfill relatives on loading diffpool, ancestors may not be present
                 blockTxsSet = set(blockMempool.txs.keys())
                 for k in blockMempool.txs.keys():
                     if (k in self.globalMempool.txs):
                         raise Exception(k + ' loaded from .diffpool, but already in globalMempool')
                     self.globalMempool.txs[k] = blockMempool.txs[k]
-                self.globalMempool.backfill_relatives(self.confirmed_txs) # ensure that all ancestors, children and descendants are set after merging global and block mempool
+                self.globalMempool.backfill_relatives(self.confirmed_txs) # Ensure that all ancestors, children and descendants are set after merging global and block mempool
 
                 for k in set(self.globalMempool.txs.keys()).intersection(self.confirmed_txs):
                     self.globalMempool.removeConfirmedTx(k)
-                self.globalMempool.fromDict(self.globalMempool.txs, blockId)
 
         logging.debug("Global Mempool after loading block: " + str(self.globalMempool.txs.keys()))
 
@@ -132,32 +130,27 @@ class Monthbuilder():
 
 
     def runBlockWithGlobalMempool(self, asb_proportion=0, csb_proportion=1):
-        startTime = time.time()
+        start_time = time.time()
         coinbaseSizeForCurrentBlock = self.coinbaseSizes[self.height]
         logging.info("Current height: " + str(self.height))
         weightAllowance = 4000000 - int(coinbaseSizeForCurrentBlock)
         logging.debug("Current weightAllowance: " + str(weightAllowance))
         logging.debug("Global Mempool before BB(): " + str(self.globalMempool.txs.keys()))
-        bbMempool = csb.Mempool()
-        bbMempool.fromDict(self.globalMempool.txs)
-        # After loading block mempool, store ancestors for each transaction in permanent field
-        bbMempool.backfill_relatives(self.confirmed_txs)
         builder_type = ''
         builder = None
         if (random.randint(1, asb_proportion + csb_proportion) <= asb_proportion):
             builder_type = 'ASB'
-            builder = asb.AncestorSetBlockbuilder(bbMempool, weightAllowance)
+            builder = asb.AncestorSetBlockbuilder(self.globalMempool, weightAllowance)
         else:
             builder_type = 'CSB'
-            builder = csb.CandidateSetBlockbuilder(bbMempool, weightAllowance)
+            builder = csb.CandidateSetBlockbuilder(self.globalMempool, weightAllowance)
         logging.debug("Block Mempool after BB(): " + str(builder.mempool.txs.keys()))
         selectedTxs = builder.buildBlockTemplate()
         logging.debug("selectedTxs: " + str(selectedTxs))
         self.confirmed_txs = set(selectedTxs).union(self.confirmed_txs)
         builder.outputBlockTemplate(self.height, self.result_dir) # TODO: Height+blockhash?
-        self.globalMempool.fromDict(bbMempool.txs)
         endTime = time.time()
-        logging.info('runBlockWithGlobalMempool() [' + builder_type + '] elapsed time: ' + str(endTime - startTime))
+        logging.info('runBlockWithGlobalMempool() [' + builder_type + '] elapsed time: ' + str(endTime - start_time))
 
 
     def getNextBlockHeight(self):
