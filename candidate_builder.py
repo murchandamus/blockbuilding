@@ -163,7 +163,7 @@ class CandidateSetBlockbuilder(Blockbuilder):
             while len(txsIdsToAdd) > 0:
                 for txid in txsIdsToAdd:
                     logging.debug("Try adding txid: " + str(txid))
-                    if set(self.refMempool.txs[txid].same_block_ancestors).issubset(set(self.selectedTxs)):
+                    if set(self.mempool.txs[txid].permanent_parents).issubset(set(self.selectedTxs)):
                         self.selectedTxs.append(txid)
                         txsIdsToAdd.remove(txid)
             self.availableWeight -= bestCandidateSet.getWeight()

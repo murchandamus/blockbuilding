@@ -61,40 +61,41 @@ class Mempool():
     def backfill_relatives(self, confirmed_txs={}):
         startTime = time.time()
         for tx in self.txs.values():
+            if tx.registered_with_ancestors:
+                continue
             # Backfill ancestors
             allAncestors = set()
             searchList = list(set(tx.parents) | set(tx.ancestors))
+            searched = set()
             while len(searchList) > 0:
                 ancestor = searchList.pop()
+                if (ancestor in searched):
+                    continue
+                else:
+                    searched.add(ancestor)
                 if (ancestor in self.txs):
                     allAncestors.add(ancestor)
-                    furtherAncestors = set(self.txs[ancestor].parents) | set(self.txs[ancestor].ancestors)
-                    searchList = list(set(searchList) | furtherAncestors)
+                    searchList = list(set(searchList) | set(self.txs[ancestor].parents) | set(self.txs[ancestor].ancestors))
                 elif (ancestor in confirmed_txs):
                     logging.debug(str(ancestor) + ' removed for being confirmed')
                 else:
                     raise Exception(str(ancestor) + " not confirmed, and not in mempool")
-            tx.ancestors = list(set(allAncestors))
+            tx.ancestors = list(allAncestors)
 
             nonParentAncestors = set()
             for a in tx.ancestors:
                 self.txs[a].descendants.add(tx.txid)
                 nonParentAncestors.update(set(self.txs[a].ancestors).intersection(set(tx.ancestors)))
             tx.parents = set(tx.ancestors) - nonParentAncestors
+            tx.permanent_parents = set(list(tx.parents))
             for p in tx.parents:
                 self.txs[p].children.add(tx.txid)
             if len(tx.ancestors) < len(tx.parents):
                 raise Exception("Fewer ancestors than parents")
-
-        self.store_same_block_ancestry()
+            tx.registered_with_ancestors = True
 
         endTime = time.time()
         logging.info('Backfilling relatives finished, elapsed time: ' + str(endTime - startTime))
-
-
-    def store_same_block_ancestry(self):
-        for tx in self.txs.values():
-            tx.same_block_ancestors = list(set([]) | set(tx.parents) | set(tx.ancestors))
 
 
     def getTx(self, txid):

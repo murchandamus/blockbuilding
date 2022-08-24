@@ -14,13 +14,14 @@ class Transaction():
         if ancestors is None:
             ancestors = []
         self.ancestors = set([] + ancestors)
-        self.same_block_ancestors = []
+        self.permanent_parents = []
         if children is None:
             children = []
         self.children = set([] + children)
         if descendants is None:
             descendants = []
         self.descendants = set([] + descendants)
+        self.registered_with_ancestors = False
 
     def createExportDict(self):
         txRep = { 'fee': self.fee, 'weight': self.weight, 'spentby': list(self.children), 'depends': list(self.parents) }

@@ -141,7 +141,6 @@ class Monthbuilder():
         bbMempool.fromDict(self.globalMempool.txs)
         # After loading block mempool, store ancestors for each transaction in permanent field
         bbMempool.backfill_relatives(self.confirmed_txs)
-        bbMempool.store_same_block_ancestry()
         builder_type = ''
         builder = None
         if (random.randint(1, asb_proportion + csb_proportion) <= asb_proportion):
