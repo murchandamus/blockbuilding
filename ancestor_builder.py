@@ -3,13 +3,16 @@ from abstract_builder import Blockbuilder
 from collections import OrderedDict
 from ancestor_set import AncestorSet
 from candidateset import CandidateSet
+
+import utils
+
 import logging
 
 import getopt
 import heapq
-import datetime
 import time
 import sys
+
 
 def main(argv):
     mempoolfilepath = ''
@@ -37,26 +40,33 @@ def main(argv):
     bb.buildBlockTemplate()
     bb.outputBlockTemplate(mempool.blockId)
     endTime = time.time()
-    logging.info('Elapsed time: ' + str(endTime - startTime))
+    logging.info('main() elapsed time: ' + str(endTime - startTime))
+
 
 class AncestorSetBlockbuilder(Blockbuilder):
+
+
     def __init__(self, mempool, weightLimit=3992820):
         self.mempool = mempool
         self.refMempool = Mempool()
-        self.refMempool.fromDict(mempool.txs)
+        self.refMempool.fromDict(mempool.txs, False)
         self.selectedTxs = []
         self.availableWeight = weightLimit
         self.weightLimit = weightLimit
         self.ancestorSets = []
         self.txAncestorSetMap = {}
 
+
     def initialize_stubs(self):
+        startTime = time.time()
         for txid, tx in self.mempool.txs.items():
             # Initialize all AncestorSets just with tx itself
             ancestorSet = AncestorSet(tx)
             logging.debug("AncestorSet created: " + str(ancestorSet))
             heapq.heappush(self.ancestorSets, ancestorSet)
             self.txAncestorSetMap[txid] = ancestorSet
+        endTime = time.time()
+        logging.info('initialize_stubs Elapsed time: ' + str(endTime - startTime))
 
     # Update incomplete AncestorSets lazily when relevant
     def backfill_incomplete_ancestor_set(self, ancestor_set):
@@ -74,15 +84,10 @@ class AncestorSetBlockbuilder(Blockbuilder):
     def add_to_block(self, ancestor_set):
         if not ancestor_set.isComplete:
             raise ValueError("add_to_block called with incomplete AncestorSet: " + str(ancestor_set))
-        txsIdsToAdd = list(ancestor_set.txs.keys())
+        txsIdsToAdd = ancestor_set.get_topologically_sorted_txids()
         logging.debug("txsIdsToAdd: " + str(txsIdsToAdd))
-        while len(txsIdsToAdd) > 0:
-            for txid in txsIdsToAdd:
-                logging.debug("Try adding txid: " + str(txid))
-                if set(self.refMempool.txs[txid].same_block_ancestors).issubset(set(self.selectedTxs)):
-                    self.selectedTxs.append(txid)
-                    txsIdsToAdd.remove(txid)
-        self.availableWeight -= ancestor_set.getWeight()
+        self.selectedTxs.extend(txsIdsToAdd)
+        self.availableWeight -= ancestor_set.get_weight()
 
         # remove included txs from mempool and lazy delete their ancestor sets
         for txid in ancestor_set.txs.keys():
@@ -90,6 +95,7 @@ class AncestorSetBlockbuilder(Blockbuilder):
             if txid in self.txAncestorSetMap.keys():
                 self.txAncestorSetMap[txid].isObsolete = True
             self.mempool.removeConfirmedTx(txid)
+
 
     def reset_remaining_descendants(self, ancestor_set):
         remainingDescendants = ancestor_set.getAllDescendants()
@@ -104,7 +110,9 @@ class AncestorSetBlockbuilder(Blockbuilder):
                 self.txAncestorSetMap[d] = replacement
                 heapq.heappush(self.ancestorSets, replacement)
 
+
     def buildBlockTemplate(self):
+        startTime = time.time()
         logging.info("Building blocktemplate...")
         self.initialize_stubs()
 
@@ -116,7 +124,7 @@ class AncestorSetBlockbuilder(Blockbuilder):
             elif not bestAncestorSet.isComplete:
                 # Update incomplete AncestorSets lazily when they bubble to the top
                 self.backfill_incomplete_ancestor_set(bestAncestorSet)
-            elif bestAncestorSet.getWeight() > self.availableWeight:
+            elif bestAncestorSet.get_weight() > self.availableWeight:
                 # complete, but too big: discard
                 continue
             else:
@@ -124,14 +132,16 @@ class AncestorSetBlockbuilder(Blockbuilder):
                 self.add_to_block(bestAncestorSet)
                 self.reset_remaining_descendants(bestAncestorSet)
 
+        endTime = time.time()
+        logging.info('buildBlockTemplate: elapsed time: ' + str(endTime - startTime))
         return self.selectedTxs
+
 
     def outputBlockTemplate(self, blockId="", result_dir="results/"):
         filePath = result_dir
         if blockId is not None and blockId != "":
             filePath += str(blockId) + '-'
-        date_now = datetime.datetime.now()
-        filePath += date_now.isoformat()
+        filePath += utils.get_timestamp()
 
         filePath += '.byancestors'
         with open(filePath, 'w') as output_file:
@@ -139,8 +149,8 @@ class AncestorSetBlockbuilder(Blockbuilder):
             if len(self.selectedTxs) > 0:
                 # TODO: Implement generic transaction set instead of this misuse
                 selected = CandidateSet({txid: self.refMempool.txs[txid] for txid in self.selectedTxs})
-                output_file.write('CreateNewBlockByAncestors(): fees ' + str(selected.getFees()) +
-                                  ' weight ' + str(selected.getWeight()) + ' size limit ' +
+                output_file.write('CreateNewBlockByAncestors(): fees ' + str(selected.get_fees()) +
+                                  ' weight ' + str(selected.get_weight()) + ' size limit ' +
                                   str(self.weightLimit) +'\n')
             else:
                 output_file.write('CreateNewBlockByAncestors(): fees ' + '0' +

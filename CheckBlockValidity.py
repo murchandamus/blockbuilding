@@ -46,6 +46,6 @@ def checkBlockValditiy(mempool, block):
 if __name__ == '__main__':
     MAX_BLOCK_WEIGHT = 4000000
     mempool = blockbuilder.Mempool()
-    mempool.fromTXT(r"./data/data example/000000000000000000269e0949579bd98366bef1ca308d134182dbf28dc6fdef.mempool", ' ')
+    mempool.fromTXT(r"./data/data example/000000000000000000269e0949579bd98366bef1ca308d134182dbf28dc6fdef.mempool")
     block = readBlock(r"./results/2021-01-14T18.19.25.710629.byclusters")
     checkBlockValditiy(mempool,block)

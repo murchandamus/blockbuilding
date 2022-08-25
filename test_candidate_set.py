@@ -14,8 +14,8 @@ class TestCandidateSet(unittest.TestCase):
     def test_get_children(self):
         self.assertIn("C", self.csAB.getChildren())
 
-    def test_get_effective_feerate(self):
-        self.assertEqual(self.csAB.getEffectiveFeerate(), 5/6)
+    def test_get_feerate(self):
+        self.assertEqual(self.csAB.get_feerate(), 5/6)
 
     def test_sorting(self):
         self.assertLess(self.csAB, self.csA)

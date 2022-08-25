@@ -1,5 +1,6 @@
 from itertools import chain, combinations
-import datetime
+
+import utils
 import getopt
 import heapq
 import json
@@ -13,6 +14,7 @@ from mempool import Mempool
 from transaction import Transaction
 from cluster import Cluster
 from candidateset import CandidateSet
+
 
 def main(argv):
     mempoolfilepath = ''
@@ -40,13 +42,16 @@ def main(argv):
     bb.buildBlockTemplate()
     bb.outputBlockTemplate(mempool.blockId)
     endTime = time.time()
-    logging.info('Elapsed time: ' + str(endTime - startTime))
+    logging.info('main() elapsed time: ' + str(endTime - startTime))
+
 
 class CandidateSetBlockbuilder(Blockbuilder):
+
+
     def __init__(self, mempool, weightLimit=3992820):
         self.mempool = mempool
         self.refMempool = Mempool()
-        self.refMempool.fromDict(mempool.txs)
+        self.refMempool.fromDict(mempool.txs, False) # No need to backfill
         self.selectedTxs = []
         self.txsToBeClustered = {} # Bucket for transactions from used cluster
         self.clusters = {}  # Maps representative txid to cluster
@@ -59,7 +64,9 @@ class CandidateSetBlockbuilder(Blockbuilder):
         self.weightLimit = weightLimit
         self.availableWeight = self.weightLimit
 
+
     def cluster(self, weightLimit):
+        startTime = time.time()
         if len(self.clusters) == 0:
             for txid, tx in self.mempool.txs.items():
                 self.txsToBeClustered[txid] = tx
@@ -82,13 +89,16 @@ class CandidateSetBlockbuilder(Blockbuilder):
                 self.txClusterMap[lct] = localCluster.representative
             heapq.heappush(self.clusterHeap, localCluster)
 
-        logging.debug('finished cluster building')
         self.txsToBeClustered = {}
+        endTime = time.time()
+        logging.debug('cluster() elapsed time: ' + str(endTime - startTime))
         return self.clusters
+
 
     def popBestCandidateSet(self, weightLimit):
         # TODO: Don't cluster until an unclustered transaction bubbles up to highest feerate, then find that cluster and the corresponding champion
         logging.debug("Called popBestCandidateSet with weightLimit " + str(weightLimit))
+        startTime = time.time()
         self.cluster(weightLimit)
         bestCluster = heapq.heappop(self.clusterHeap) if len(self.clusterHeap) else None
         bestCandidateSet = bestCluster.bestCandidate if bestCluster is not None else None
@@ -96,7 +106,7 @@ class CandidateSetBlockbuilder(Blockbuilder):
             # ensures bestCandidate of last cluster gets evaluated and included
             bestCandidateSet = bestCluster.getBestCandidateSet(weightLimit) if bestCluster is not None else None
         # If bestCandidateSet exceeds weightLimit, refresh bestCluster and get next best cluster
-        while (bestCandidateSet is None or bestCandidateSet.getWeight() > weightLimit) and len(self.clusterHeap) > 0:
+        while (bestCandidateSet is None or bestCandidateSet.get_weight() > weightLimit) and len(self.clusterHeap) > 0:
             # Update best candidate set in cluster with weight limit
             if bestCandidateSet is not None:
                 logging.debug("bestCandidateSet " + str(bestCandidateSet) + " is over weight limit: " + str(weightLimit))
@@ -108,7 +118,7 @@ class CandidateSetBlockbuilder(Blockbuilder):
                 bestCluster = heapq.heappushpop(self.clusterHeap, bestCluster)
             bestCandidateSet = bestCluster.bestCandidate
 
-        if bestCandidateSet is not None and bestCandidateSet.getWeight() > weightLimit:
+        if bestCandidateSet is not None and bestCandidateSet.get_weight() > weightLimit:
             bestCandidateSet = None
 
         logging.debug("best candidate from all clusters: " + str(bestCandidateSet))
@@ -131,9 +141,13 @@ class CandidateSetBlockbuilder(Blockbuilder):
             # delete modified cluster for recreation next round
             self.clusters.pop(bestCluster.representative)
 
+        endTime = time.time()
+        logging.debug('popBestCandidateSet() elapsed time: ' + str(endTime - startTime))
         return bestCandidateSet
 
+
     def buildBlockTemplate(self):
+        startTime = time.time()
         logging.info("Building blocktemplate...")
         for txid, tx in self.mempool.txs.items():
             self.txsToBeClustered[txid] = tx
@@ -144,31 +158,29 @@ class CandidateSetBlockbuilder(Blockbuilder):
             bestCandidateSet = self.popBestCandidateSet(self.availableWeight)
             if bestCandidateSet is None or len(bestCandidateSet.txs) == 0:
                 break
-            txsIdsToAdd = list(bestCandidateSet.txs.keys())
-            while len(txsIdsToAdd) > 0:
-                for txid in txsIdsToAdd:
-                    logging.debug("Try adding txid: " + str(txid))
-                    if set(self.refMempool.txs[txid].same_block_ancestors).issubset(set(self.selectedTxs)):
-                        self.selectedTxs.append(txid)
-                        txsIdsToAdd.remove(txid)
-            self.availableWeight -= bestCandidateSet.getWeight()
+            txsIdsToAdd = bestCandidateSet.get_topologically_sorted_txids() 
+            logging.debug("txsIdsToAdd: " + str(txsIdsToAdd))
+            self.selectedTxs.extend(txsIdsToAdd)
+            self.availableWeight -= bestCandidateSet.get_weight()
 
+        endTime = time.time()
+        logging.info('buildBlockTemplate() elapsed time: ' + str(endTime - startTime))
         return self.selectedTxs
+
 
     def outputBlockTemplate(self, blockId="", result_dir="results/"):
         filePath = result_dir
         if blockId is not None and blockId != "":
             filePath += str(blockId) + '-'
-        date_now = datetime.datetime.now()
-        filePath += date_now.isoformat()
+        filePath += utils.get_timestamp()
 
         filePath += '.byclusters'
         with open(filePath, 'w') as output_file:
             logging.debug(self.selectedTxs)
             if len(self.selectedTxs) > 0:
                 selected = CandidateSet({txid: self.refMempool.txs[txid] for txid in self.selectedTxs})
-                output_file.write('CreateNewBlockByClusters(): fees ' + str(selected.getFees()) +
-                                  ' weight ' + str(selected.getWeight()) + ' size limit ' +
+                output_file.write('CreateNewBlockByClusters(): fees ' + str(selected.get_fees()) +
+                                  ' weight ' + str(selected.get_weight()) + ' size limit ' +
                                   str(self.weightLimit) +'\n')
             else:
                 output_file.write('CreateNewBlockByClusters(): fees ' + '0' +
