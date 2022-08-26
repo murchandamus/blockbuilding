@@ -66,7 +66,7 @@ def write_blocks_to_csv(csv_file_name, blocks):
         fieldnames = ['height', 'weight', 'fee', 'type']
         writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
         writer.writeheader()
-        for height in blocks.keys():
+        for height in sorted(blocks.keys()):
             writer.writerow({'height': height, 'weight': blocks[height]['weight'], 'fee': blocks[height]['fee'], 'type': blocks[height]['type']})
 
     csv_file.close()
