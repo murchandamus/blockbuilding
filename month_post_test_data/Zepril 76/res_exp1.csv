@@ -1,0 +1,4 @@
+id,blocks in sim,blocks by Cluster,total fees_byCluster,average fee_byCluster,median fee_byCluster,var of fee_byCluster,total fees_byAncestor,average fee_byAncestor,median fee_byAncestor,var of fee_byAncestor,total fees_diff,average fee_diff,median fee_diff,var of fee_diff
+run2,4,2,5,2.5,2.5,0.5,2.5,1.25,1.25,0.125,2.5,1.25,1.25,0.375
+run3,4,1,2.0,2.0,2.0,nan,1.0,1.0,1.0,nan,1.0,1.0,1.0,nan
+run1,4,2,5,2.5,2.5,0.5,2.5,1.25,1.25,0.125,2.5,1.25,1.25,0.375
