@@ -2,7 +2,7 @@ import pandas as pd
 import os
 import csv
 
-class Summery():
+class Summary():
     def __init__(self, sim_id, keys=['total fees', 'average fee', 'median fee', 'var of fee']):
         self.id = sim_id
         self.blockInSim = -1
@@ -13,34 +13,28 @@ class Summery():
         self.resDiff = dict.fromkeys(self.keys, -1)
 
 
-
-
-
-
-
-
 def find_stats(res, baseline, sim_id):
-    summ = Summery(sim_id)
-    summ.blockInSim = res.shape[0]
+    sum = Summary(sim_id)
+    sum.blockInSim = res.shape[0]
     joinedRes = res.join(baseline, lsuffix='_res', rsuffix='_baseline')
     print('res:')
     print(res['fee'])
     print('joined table, fee_res')
     print(joinedRes['fee_res'])
     f_data = joinedRes[joinedRes['type_res'] =='.byclusters']
-    summ.blocksByCluster = f_data.shape[0]
+    sum.blocksByCluster = f_data.shape[0]
     print(f_data['fee_baseline'])
-    summ.resCluster['total fees'] = f_data['fee_res'].sum()
-    summ.resCluster['average fee'] = f_data['fee_res'].mean()
-    summ.resCluster['median fee'] = f_data['fee_res'].median()
-    summ.resCluster['var of fee'] = f_data['fee_res'].var()
-    summ.resAncestor['total fees'] = f_data['fee_baseline'].sum()
-    summ.resAncestor['average fee'] = f_data['fee_baseline'].mean()
-    summ.resAncestor['median fee'] = f_data['fee_baseline'].median()
-    summ.resAncestor['var of fee'] = f_data['fee_baseline'].var()
-    for key in summ.resCluster.keys():
-        summ.resDiff[key] = summ.resCluster[key] - summ.resAncestor[key]
-    return summ
+    sum.resCluster['total fees'] = f_data['fee_res'].sum()
+    sum.resCluster['average fee'] = f_data['fee_res'].mean()
+    sum.resCluster['median fee'] = f_data['fee_res'].median()
+    sum.resCluster['var of fee'] = f_data['fee_res'].var()
+    sum.resAncestor['total fees'] = f_data['fee_baseline'].sum()
+    sum.resAncestor['average fee'] = f_data['fee_baseline'].mean()
+    sum.resAncestor['median fee'] = f_data['fee_baseline'].median()
+    sum.resAncestor['var of fee'] = f_data['fee_baseline'].var()
+    for key in sum.resCluster.keys():
+        sum.resDiff[key] = sum.resCluster[key] - sum.resAncestor[key]
+    return sum
 
 
 def find_res_file_in_folder(folder):
@@ -81,4 +75,4 @@ def print_to_file(file_path, dict):
 
 if __name__ == '__main__':
     keys = ['total fees', 'average fee', 'median fee', 'var of fee']
-    sum_month('data/Zepril 76')
+    sum_month('complete-results')
